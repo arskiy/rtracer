@@ -71,9 +71,24 @@ impl Material for Dieletric {
         let refraction_ratio = if front_face { 1.0 / self.ir } else { self.ir };
 
         let unit_dir = r_in.dir.unit_vector();
-        let refracted = unit_dir.refract(normal, refraction_ratio);
+        let refracted = refract(unit_dir, normal, refraction_ratio);
 
         *scattered = Ray::new(p, refracted);
         true
     }
+}
+
+fn refract(uv: Vec3, n: Vec3, etai_over_etat: f32) -> Vec3 {
+    let cos_theta = min(-uv.dot(n), 1.0);
+    let r_out_perp = etai_over_etat * (uv + cos_theta * n);
+    let r_out_parallel = -((1.0 - r_out_perp.length_squared()).abs().sqrt()) * n;
+
+    r_out_perp + r_out_parallel
+}
+
+fn min(n: f32, m: f32) -> f32 {
+    if n > m {
+        return m;
+    }
+    n
 }
