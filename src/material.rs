@@ -1,4 +1,3 @@
-use crate::hittable::*;
 use crate::ray::Ray;
 use crate::vec3::*;
 
@@ -17,7 +16,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: Ray, normal: Vec3, p: Vec3, front_face: bool, attenuation: &mut Color, scattered: &mut Ray) -> bool {
+    fn scatter(&self, _r_in: Ray, normal: Vec3, p: Vec3, _front_face: bool, attenuation: &mut Color, scattered: &mut Ray) -> bool {
         let mut scatter_dir = normal + Vec3::random_unit_vector();
 
         if scatter_dir.near_zero() { scatter_dir = normal }
@@ -44,7 +43,7 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, r_in: Ray, normal: Vec3, p: Vec3, front_face: bool, attenuation: &mut Color, scattered: &mut Ray) -> bool {
+    fn scatter(&self, r_in: Ray, normal: Vec3, p: Vec3, _front_face: bool, attenuation: &mut Color, scattered: &mut Ray) -> bool {
         let reflected = r_in.dir.unit_vector().reflect(normal);
         *scattered = Ray::new(p, reflected + self.fuzz * Vec3::random_in_unit_sphere());
         *attenuation = self.albedo;
@@ -74,6 +73,7 @@ impl Material for Dieletric {
         let refracted = refract(unit_dir, normal, refraction_ratio);
 
         *scattered = Ray::new(p, refracted);
+        //eprintln!("refract {:?} unit dir: {:?}", refracted, unit_dir);
         true
     }
 }
