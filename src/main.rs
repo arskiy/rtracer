@@ -34,8 +34,8 @@ fn main() {
 
     let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
     let material_center = Lambertian::new(Color::new(0.7, 0.3, 0.3));
-    let material_left = Metal::new(Color::new(0.8, 0.8, 0.8));
-    let material_right = Metal::new(Color::new(0.8, 0.6, 0.2));
+    let material_left = Metal::new(Color::new(0.8, 0.8, 0.8), 0.3);
+    let material_right = Dieletric::new(1.5);
 
     world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, Rc::new(Box::new(material_ground)))));
     world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, Rc::new(Box::new(material_center)))));
@@ -83,7 +83,7 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
 
             let mut scattered = Ray::new(Vec3::new_empty(), Vec3::new_empty());
             let mut attenuation = Color::new_empty();
-            if hit.material.scatter(r, hit.normal, hit.p, &mut attenuation, &mut scattered) {
+            if hit.material.scatter(r, hit.normal, hit.p, hit.front_face, &mut attenuation, &mut scattered) {
                 return attenuation * ray_color(scattered, world, depth - 1);
             }
             return Color::new_empty();
