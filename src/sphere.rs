@@ -27,7 +27,7 @@ impl Hittable for Sphere {
         // Find the nearest root that lies in the acceptable range.
         let root = (-half_b - sqrtd) / a;
         if root < t_min || t_max < root {
-            let root = (half_b + sqrtd) / a;
+            let root = (-half_b + sqrtd) / a;
             if root < t_min || t_max < root {
                 return None;
             }
