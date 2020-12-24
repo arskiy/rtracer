@@ -28,13 +28,8 @@ impl Hittable for HittableList {
 
         for object in &self.objects {
             if let Some(candidate_hit) = object.hit(r, t_min, closest_so_far) {
-                match hit {
-                    None => hit = Some(candidate_hit),
-                    Some(prev) => {
-                        closest_so_far = candidate_hit.t;
-                    }
-                    _ => (),
-                }
+                closest_so_far = candidate_hit.t;
+                hit = Some(candidate_hit);    
             }
         }
 

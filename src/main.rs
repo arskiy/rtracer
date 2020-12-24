@@ -66,18 +66,14 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
         return Color::new_empty();
     }
 
-    let rec = HitRecord::new();
-    let rec = world.hit(&r, 0.0, std::f32::INFINITY);
-
-    match rec {
+    match world.hit(&r, 0.0, std::f32::INFINITY) {
         Some(hit) => {
-            /*
             let target = hit.p + hit.normal + Vec3::random_in_unit_sphere();
             let x = 0.5 * ray_color(Ray::new(hit.p, target - hit.p), world, depth - 1);
-            println!("x: {:?}", x);
+            //eprintln!("x: {:?}", x);
             x
-            */
-            return 0.5 * (hit.normal + Color::new(1.0,1.0,1.0));
+            
+            //return 0.5 * (hit.normal + Color::new(1.0,1.0,1.0));
         },
         None => {
             let unit_dir = r.dir.unit_vector();
