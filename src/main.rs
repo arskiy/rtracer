@@ -5,6 +5,7 @@ pub mod hittable;
 pub mod sphere;
 pub mod hittable_list;
 pub mod camera;
+pub mod material;
 
 use vec3::*;
 use ray::Ray;
@@ -12,8 +13,11 @@ use sphere::Sphere;
 use hittable::{Hittable, HitRecord};
 use hittable_list::HittableList;
 use camera::Camera;
+use material::*;
 
 use rand::prelude::*;
+
+use std::rc::Rc;
 
 fn main() {
     let mut rng = rand::thread_rng();
@@ -27,8 +31,16 @@ fn main() {
 
     // World
     let mut world = HittableList::new();
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
-    world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
+
+    let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
+    let material_center = Lambertian::new(Color::new(0.7, 0.3, 0.3));
+    let material_left = Metal::new(Color::new(0.8, 0.8, 0.8));
+    let material_right = Metal::new(Color::new(0.8, 0.6, 0.2));
+
+    world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, Rc::new(Box::new(material_ground)))));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, Rc::new(Box::new(material_center)))));
+    world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, Rc::new(Box::new(material_left)))));
+    world.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, Rc::new(Box::new(material_right)))));
 
     // Camera
     let cam = Camera::new();
@@ -49,7 +61,7 @@ fn main() {
             let pixel_color = ray_color(ray, &mut world);
             */
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-            for s in 0..samples_per_pixel {
+            for _ in 0..samples_per_pixel {
                 let u = (i as f32 + rng.gen::<f32>()) / (image_width - 1) as f32;
                 let v = (j as f32 + rng.gen::<f32>()) / (image_height - 1) as f32;
 
@@ -68,12 +80,17 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
 
     match world.hit(&r, 0.001, std::f32::INFINITY) {
         Some(hit) => {
-            let target = hit.p + hit.normal + Vec3::random_in_unit_sphere();
-            let x = 0.5 * ray_color(Ray::new(hit.p, target - hit.p), world, depth - 1);
-            //eprintln!("x: {:?}", x);
-            x
-            
-            //return 0.5 * (hit.normal + Color::new(1.0,1.0,1.0));
+
+            let mut scattered = Ray::new(Vec3::new_empty(), Vec3::new_empty());
+            let mut attenuation = Color::new_empty();
+            if hit.material.scatter(r, hit.normal, hit.p, &mut attenuation, &mut scattered) {
+                return attenuation * ray_color(scattered, world, depth - 1);
+            }
+            return Color::new_empty();
+            /*
+            let target = hit.p + hit.normal + Vec3::random_unit_vector();
+            0.5 * ray_color(Ray::new(hit.p, target - hit.p), world, depth - 1)
+            */ 
         },
         None => {
             let unit_dir = r.dir.unit_vector();

@@ -194,6 +194,19 @@ impl Vec3 {
         }
         p
     }
+
+    pub fn random_unit_vector() -> Self {
+        Self::random_in_unit_sphere().unit_vector()
+    }
+
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
+    }
+
+    pub fn reflect(&self, other: Self) -> Self {
+        *self - 2.0 * 2.0 * self.dot(other) * other    
+    }
 }
 
 pub type Color = Vec3;
