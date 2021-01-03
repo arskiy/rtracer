@@ -1,16 +1,18 @@
-use crate::vec3::Color;
+use crate::vec3::*;
 
-pub fn write_color(pixel_color: Color, samples_per_pixel: i32) {
-    let mut r = pixel_color.x;
-    let mut g = pixel_color.y;
-    let mut b = pixel_color.z;
+pub fn write_color(pixel_color: Color, samples_per_pixel: i32) -> Vec3 {
+    let mut ret = pixel_color;
 
     let scale = 1.0 / samples_per_pixel as f32;
-    r = (scale * r).sqrt();
-    g = (scale * g).sqrt();
-    b = (scale * b).sqrt();
+    ret.x = (scale * ret.x).sqrt();
+    ret.y = (scale * ret.y).sqrt();
+    ret.z = (scale * ret.z).sqrt();
 
-    println!("{} {} {}", (256.0 * clamp(r, 0.0, 0.99)) as i32, (256.0 * clamp(g, 0.0, 0.99)) as i32, (256.0 * clamp(b, 0.0, 0.99)) as i32);
+    ret.x = 256.0 * clamp(ret.x, 0.0, 0.99);
+    ret.y = 256.0 * clamp(ret.y, 0.0, 0.99);
+    ret.z = 256.0 * clamp(ret.z, 0.0, 0.99);
+
+    ret
 }
 
 fn clamp(x: f32, min: f32, max: f32) -> f32 {

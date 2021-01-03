@@ -40,16 +40,16 @@ fn main() {
 
     world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
     world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
-    //world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
+    world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
     world.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
 
     // Camera
-    let lookfrom = Point3::new(13.0, 2.0, 3.0);
+    let lookfrom = Point3::new(0.0, 0.0, 0.5);
     let lookat = Point3::new(0.0, 0.0, 0.0);
     //let lookfrom = Point3::new(-2.0, 2.0, -1.0);
     //let lookat = Point3::new(0.0, 0.0, -1.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = 0.0;
+    let dist_to_focus = 1.5;
     let aperture = 0.1;
     let cam = Camera::new(lookfrom, lookat, vup, 90.0, aspect_ratio, aperture, dist_to_focus);
 
@@ -58,13 +58,13 @@ fn main() {
     println!("P3\n{} {}\n255", nx, ny);
 
     /*
-    for j in (0..ny).rev() {
+    for y in (0..ny).rev() {
         eprintln!("Scanlines remaining: {}", j);
-        for i in 0..nx {
+        for x in 0..nx {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
             for _ in 0..samples_per_pixel {
-                let u = (i as f32 + rng.gen::<f32>()) / (nx - 1) as f32;
-                let v = (j as f32 + rng.gen::<f32>()) / (ny - 1) as f32;
+                let u = (x as f32 + rng.gen::<f32>()) / (nx - 1) as f32;
+                let v = (y as f32 + rng.gen::<f32>()) / (ny - 1) as f32;
 
                 let r = cam.get_ray(u, v);
                 pixel_color += ray_color(r, &world, max_depth);
@@ -75,19 +75,27 @@ fn main() {
     */
 
     eprintln!("Rendering!");
-    (0..ny).into_par_iter().for_each(|j| {
-        for i in 0..nx {
+    let mut image: Vec<Vec<Color>> = vec!(vec!());
+
+    (0..ny).into_par_iter().rev().for_each(|y| {
+        for x in 0..nx {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
             for _ in 0..samples_per_pixel {
-                let u = (i as f32 + rand::random::<f32>()) / (nx - 1) as f32;
-                let v = (j as f32 + rand::random::<f32>()) / (ny - 1) as f32;
+                let u = (x as f32 + rand::random::<f32>()) / (nx - 1) as f32;
+                let v = (y as f32 + rand::random::<f32>()) / (ny - 1) as f32;
 
                 let r = cam.get_ray(u, v);
                 pixel_color += ray_color(r, &world, max_depth);
             }
-            color::write_color(pixel_color, samples_per_pixel);
+            image[y as usize][x as usize] = color::write_color(pixel_color, samples_per_pixel);
         }
-    })
+    });
+
+    for y in 0..image.len() {
+        for x in 0..image[y].len() {
+            println!("{} {} {}", image[y][x].x, image[y][x].y, image[y][x].z);
+        }
+    }
 }
 
 fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
@@ -97,8 +105,6 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
 
     match world.hit(&r, 0.001, std::f32::INFINITY) {
         Some(hit) => {
-            let mut scattered = Ray::new(Vec3::new_empty(), Vec3::new_empty());
-            let mut attenuation = Color::new_empty();
             if let Some((scattered, attenuation)) = hit.material.scatter(r, hit.normal, hit.p, hit.front_face) {
                 let x = attenuation * ray_color(scattered, world, depth - 1);
                 return x;

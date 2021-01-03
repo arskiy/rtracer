@@ -71,7 +71,7 @@ impl Dieletric {
 
 impl Material for Dieletric {
     fn scatter(&self, ray: Ray, normal: Vec3, p: Vec3, front_face: bool) -> Option<(Ray, Color)> {
-        let attenuation = Color::new(0.5, 1.0, 1.0);
+        let attenuation = Color::new(1.0, 1.0, 1.0);
         let refraction_ratio = if front_face {
             1.0 / self.ir
         } else {
