@@ -3,21 +3,19 @@ use crate::vec3::*;
 use crate::ray::Ray;
 use crate::material::Material;
 
-use std::rc::Rc;
-
-pub struct Sphere {
+pub struct Sphere<M: Material> {
     pub center: Point3,
     pub radius: f32,
-    pub material: Rc<Box<dyn Material>>,
+    pub material: M,
 }
 
-impl Sphere {
-    pub fn new(center: Point3, radius: f32, material: Rc<Box<dyn Material>>) -> Self {
+impl<M: Material> Sphere<M> {
+    pub fn new(center: Point3, radius: f32, material: M) -> Self {
         Self { center, radius, material }
     }
 }
 
-impl Hittable for Sphere {
+impl<M: Sync + Material> Hittable for Sphere<M> {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let oc = r.orig - self.center;
         let a = r.dir.length_squared();
@@ -37,10 +35,14 @@ impl Hittable for Sphere {
             }
         }
 
-        let mut hr = HitRecord::new();
-        hr.material = Rc::clone(&self.material);
-        hr.t = root;
-        hr.p = r.at(hr.t);
+        let mut hr = HitRecord {
+            normal: Vec3::new_empty(),
+            p: r.at(root),
+            t: root,
+            front_face: false,
+            material: &self.material,
+        };
+
         let outward_normal = (hr.p - self.center) / self.radius;
         hr.set_face_normal(r, outward_normal);
 

@@ -8,6 +8,7 @@ pub struct Vec3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    i: usize,
 }
 
 impl ops::Neg for Vec3 {
@@ -18,6 +19,7 @@ impl ops::Neg for Vec3 {
             x: -self.x,
             y: -self.y,
             z: -self.z,
+            i: self.i,
         }
     }
 }
@@ -28,6 +30,7 @@ impl ops::AddAssign for Vec3 {
             x: self.x + other.x,
             y: self.y + other.y,
             z: self.z + other.z,
+            i: self.i,
         };
     }
 }
@@ -56,6 +59,7 @@ impl ops::Add for Vec3 {
             x: self.x + other.x,
             y: self.y + other.y,
             z: self.z + other.z,
+            i: self.i,
         }
     }
 }
@@ -68,6 +72,7 @@ impl ops::Sub for Vec3 {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,
+            i: self.i,
         }
     }
 }
@@ -80,6 +85,7 @@ impl ops::Mul<f32> for Vec3 {
             x: self.x * t,
             y: self.y * t,
             z: self.z * t,
+            i: self.i,
         }
     }
 }
@@ -92,6 +98,7 @@ impl ops::Mul<Vec3> for Vec3 {
             x: self.x * other.x,
             y: self.y * other.y,
             z: self.z * other.z,
+            i: self.i,
         }
     }
 }
@@ -131,11 +138,12 @@ impl Vec3 {
             x: 0.0,
             y: 0.0,
             z: 0.0,
+            i: 0,
         }
     }
 
     pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
+        Self { x, y, z, i: 0 }
     }
 
     pub fn random() -> Self {
@@ -143,6 +151,7 @@ impl Vec3 {
             x: rand::random(),
             y: rand::random(),
             z: rand::random(),
+            i: 0,
         }
     }
 
@@ -152,6 +161,7 @@ impl Vec3 {
             x: rng.gen_range(min..max),
             y: rng.gen_range(min..max),
             z: rng.gen_range(min..max),
+            i: 0,
         }
     }
 
@@ -178,6 +188,7 @@ impl Vec3 {
             x: self.y * other.z - self.z * other.y,
             y: self.z * other.x - self.x * other.z,
             z: self.x * other.y - self.y * other.x,
+            i: self.i,
         }
     }
 
@@ -227,6 +238,15 @@ impl Vec3 {
             }
         }
         p
+    }
+}
+
+impl IntoIterator for Vec3 {
+    type Item = f32;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        vec!(self.x, self.y, self.z).into_iter()
     }
 }
 
