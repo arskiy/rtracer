@@ -16,16 +16,15 @@ use camera::Camera;
 use material::*;
 
 use rand::prelude::*;
+use std::sync::{Arc, Mutex};
 
 use rayon::prelude::*;
 
 fn main() {
-    let mut rng = rand::thread_rng();
-
     // Image
-    let aspect_ratio = 3.0 / 2.0;
-    let nx: i32 = 600;
-    let ny: i32 = (nx as f32 / aspect_ratio) as i32;
+    const ASPECT_RATIO: f32 = 3.0 / 2.0;
+    const NX: i32 = 600;
+    const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
     let samples_per_pixel = 100;
     let max_depth = 50;
 
@@ -51,20 +50,20 @@ fn main() {
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 1.5;
     let aperture = 0.1;
-    let cam = Camera::new(lookfrom, lookat, vup, 90.0, aspect_ratio, aperture, dist_to_focus);
+    let cam = Camera::new(lookfrom, lookat, vup, 90.0, ASPECT_RATIO, aperture, dist_to_focus);
 
     // Render
 
-    println!("P3\n{} {}\n255", nx, ny);
+    println!("P3\n{} {}\n255", NX, NY);
 
     /*
-    for y in (0..ny).rev() {
+    for y in (0..NY).rev() {
         eprintln!("Scanlines remaining: {}", j);
-        for x in 0..nx {
+        for x in 0..NX {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
             for _ in 0..samples_per_pixel {
-                let u = (x as f32 + rng.gen::<f32>()) / (nx - 1) as f32;
-                let v = (y as f32 + rng.gen::<f32>()) / (ny - 1) as f32;
+                let u = (x as f32 + rng.gen::<f32>()) / (NX - 1) as f32;
+                let v = (y as f32 + rng.gen::<f32>()) / (NY - 1) as f32;
 
                 let r = cam.get_ray(u, v);
                 pixel_color += ray_color(r, &world, max_depth);
@@ -75,25 +74,28 @@ fn main() {
     */
 
     eprintln!("Rendering!");
-    let mut image: Vec<Vec<Color>> = vec!(vec!());
+    let mut image: Arc<Mutex<Box<[[Color; NX as usize]; NY as usize]>>> = Arc::new(Mutex::new(Box::new([[Vec3::new_empty(); NX as usize]; NY as usize])));
 
-    (0..ny).into_par_iter().rev().for_each(|y| {
-        for x in 0..nx {
+    (0..NY).into_par_iter().rev().for_each(|y| {
+        eprintln!("Scanlines remaining: {}", y);
+        for x in 0..NX {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
             for _ in 0..samples_per_pixel {
-                let u = (x as f32 + rand::random::<f32>()) / (nx - 1) as f32;
-                let v = (y as f32 + rand::random::<f32>()) / (ny - 1) as f32;
+                let u = (x as f32 + rand::random::<f32>()) / (NX - 1) as f32;
+                let v = (y as f32 + rand::random::<f32>()) / (NY - 1) as f32;
 
                 let r = cam.get_ray(u, v);
                 pixel_color += ray_color(r, &world, max_depth);
             }
-            image[y as usize][x as usize] = color::write_color(pixel_color, samples_per_pixel);
+            image.lock().unwrap()[y as usize][x as usize] = color::write_color(pixel_color, samples_per_pixel);
         }
     });
 
-    for y in 0..image.len() {
-        for x in 0..image[y].len() {
-            println!("{} {} {}", image[y][x].x, image[y][x].y, image[y][x].z);
+    eprintln!("Outputting image!");
+    let img = image.lock().unwrap();
+    for y in (0..img.len()).rev() {
+        for x in 0..img[y].len() {
+            println!("{} {} {}", img[y][x].x as u8, img[y][x].y as u8, img[y][x].z as u8);
         }
     }
 }
@@ -110,10 +112,6 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
                 return x;
             }
             return Color::new_empty();
-            /*
-            let target = hit.p + hit.normal + Vec3::random_unit_vector();
-            0.5 * ray_color(Ray::new(hit.p, target - hit.p), world, depth - 1)
-            */ 
         },
         None => {
             let unit_dir = r.dir.unit_vector();
