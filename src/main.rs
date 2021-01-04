@@ -23,58 +23,43 @@ use rayon::prelude::*;
 fn main() {
     // Image
     const ASPECT_RATIO: f32 = 3.0 / 2.0;
-    const NX: i32 = 600;
+    const NX: i32 = 700;
     const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
     let samples_per_pixel = 100;
     let max_depth = 50;
 
     // World
-    //let mut world = random_scene_book();
-    let mut world = HittableList::new();
+    let mut world = random_scene_book();
+    //let mut world = HittableList::new();
 
+    /*
     let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
     let material_center = Lambertian::new(Color::new(0.7, 0.3, 0.3));
-    let material_left = Dieletric::new(1.5);
-    let material_right = Metal::new(Color::new(0.8, 0.8, 0.8), 0.3);
+    let material_left = Dieletric::new(8.0);
+    let material_right = Metal::new(Color::new(0.8, 0.8, 0.8), 0.0);
 
     world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
     world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
     world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
     world.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
+    */
 
     // Camera
-    let lookfrom = Point3::new(0.0, 0.0, 0.5);
+    let lookfrom = Point3::new(13.0, 2.0, 3.0);
     let lookat = Point3::new(0.0, 0.0, 0.0);
     //let lookfrom = Point3::new(-2.0, 2.0, -1.0);
     //let lookat = Point3::new(0.0, 0.0, -1.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = 1.5;
+    let dist_to_focus = 10.0;
     let aperture = 0.1;
-    let cam = Camera::new(lookfrom, lookat, vup, 90.0, ASPECT_RATIO, aperture, dist_to_focus);
+    let cam = Camera::new(lookfrom, lookat, vup, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
 
     // Render
 
     println!("P3\n{} {}\n255", NX, NY);
 
-    /*
-    for y in (0..NY).rev() {
-        eprintln!("Scanlines remaining: {}", j);
-        for x in 0..NX {
-            let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-            for _ in 0..samples_per_pixel {
-                let u = (x as f32 + rng.gen::<f32>()) / (NX - 1) as f32;
-                let v = (y as f32 + rng.gen::<f32>()) / (NY - 1) as f32;
-
-                let r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, &world, max_depth);
-            }
-            color::write_color(pixel_color, samples_per_pixel);
-        }
-    }
-    */
-
     eprintln!("Rendering!");
-    let mut image: Arc<Mutex<Box<[[Color; NX as usize]; NY as usize]>>> = Arc::new(Mutex::new(Box::new([[Vec3::new_empty(); NX as usize]; NY as usize])));
+    let image: Arc<Mutex<Box<[[Color; NX as usize]; NY as usize]>>> = Arc::new(Mutex::new(Box::new([[Vec3::new_empty(); NX as usize]; NY as usize])));
 
     (0..NY).into_par_iter().rev().for_each(|y| {
         eprintln!("Scanlines remaining: {}", y);
@@ -107,7 +92,7 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
 
     match world.hit(&r, 0.001, std::f32::INFINITY) {
         Some(hit) => {
-            if let Some((scattered, attenuation)) = hit.material.scatter(r, hit.normal, hit.p, hit.front_face) {
+            if let Some((scattered, attenuation)) = hit.material.scatter(r, &hit) {
                 let x = attenuation * ray_color(scattered, world, depth - 1);
                 return x;
             }
@@ -142,11 +127,15 @@ fn random_scene_book() -> HittableList {
                     let albedo = Color::random() * Color::random();
                     let sphere_material = Lambertian::new(albedo);
                     world.push(Box::new(Sphere::new(center, radius, sphere_material)));
-                } else {
+                } else if choose_material < 0.95 {
                     // metal
                     let albedo = Color::random_range(0.5, 1.0);
                     let fuzz = rng.gen_range(0.0..0.5);
                     let sphere_material = Metal::new(albedo, fuzz);
+                    world.push(Box::new(Sphere::new(center, radius, sphere_material)));
+                } else {
+                    // glass
+                    let sphere_material = Dieletric::new(1.5);
                     world.push(Box::new(Sphere::new(center, radius, sphere_material)));
                 }
             }

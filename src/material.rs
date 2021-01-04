@@ -1,8 +1,9 @@
+use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::*;
 
 pub trait Material {
-    fn scatter(&self, ray: Ray, normal: Vec3, p: Vec3, front_face: bool) -> Option<(Ray, Color)>;
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)>;
 }
 
 pub struct Lambertian {
@@ -16,18 +17,19 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray: Ray, normal: Vec3, p: Vec3, _front_face: bool) -> Option<(Ray, Color)> {
-        let mut scatter_dir = normal + Vec3::random_unit_vector();
+    fn scatter(&self, _ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
+        let mut scatter_dir = hr.normal + Vec3::random_unit_vector();
 
-        if scatter_dir.near_zero() { scatter_dir = normal }
+        if scatter_dir.near_zero() {
+            scatter_dir = hr.normal
+        }
 
-        let scattered = Ray::new(p, scatter_dir);
+        let scattered = Ray::new(hr.p, scatter_dir);
         let attenuation = self.albedo;
 
         Some((scattered, attenuation))
     }
 }
-
 
 pub struct Metal {
     pub albedo: Color,
@@ -36,7 +38,7 @@ pub struct Metal {
 
 impl Metal {
     pub fn new(albedo: Color, f: f32) -> Self {
-        Self { 
+        Self {
             albedo,
             fuzz: if f < 1.0 { f } else { 1.0 },
         }
@@ -44,12 +46,12 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray: Ray, normal: Vec3, p: Vec3, _front_face: bool) -> Option<(Ray, Color)> {
-        let reflected = ray.dir.unit_vector().reflect(normal);
-        let scattered = Ray::new(p, reflected + self.fuzz * Vec3::random_in_unit_sphere());
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
+        let reflected = reflect(ray.dir.unit_vector(), hr.normal);
+        let scattered = Ray::new(hr.p, reflected + self.fuzz * Vec3::random_in_unit_sphere());
         let attenuation = self.albedo;
-        
-        if scattered.dir.dot(normal) > 0.0 {
+
+        if scattered.dir.dot(hr.normal) > 0.0 {
             Some((scattered, attenuation))
         } else {
             None
@@ -70,41 +72,81 @@ impl Dieletric {
 }
 
 impl Material for Dieletric {
-    fn scatter(&self, ray: Ray, normal: Vec3, p: Vec3, front_face: bool) -> Option<(Ray, Color)> {
-        let attenuation = Color::new(1.0, 1.0, 1.0);
-        let refraction_ratio = if front_face {
-            1.0 / self.ir
+    /*
+    fn scatter(&self, ray: Ray, hr: &Hithrord) -> Option<(Ray, Color)> {
+        let attenuation = Vec3::new(1.0, 1.0, 1.0);
+
+        let (outward_normal, ni_over_nt, cosine) = if ray.dir.dot(hr.normal) > 0.0 {
+            let cosine = self.ir * ray.dir.dot(hr.normal);
+            (-hr.normal, self.ir, cosine)
         } else {
-            self.ir
+            let cosine = -ray.dir.dot(hr.normal);
+            (hr.normal, 1.0 / self.ir, cosine)
         };
 
-        let unit_dir = ray.dir.unit_vector();
-        let cos_theta = min(-unit_dir.dot(normal), 1.0);
-        let sin_theta = (1.0 - cos_theta.powi(2)).sqrt();
+        if let Some(refracted) = refract(ray.dir, outward_normal, ni_over_nt) {
+            let reflect_prob = schlick(cosine, self.ir);
+
+            if rand::random::<f32>() >= reflect_prob {
+                let scattered = Ray::new(hr.p, refracted);
+                return Some((scattered, attenuation))
+            }
+        }
+
+        let reflected = reflect(ray.dir, hr.normal);
+        let scattered = Ray::new(hr.p, reflected);
+        Some((scattered, attenuation))
+    }
+    */
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
+        let outward_normal: Vec3;
+        let ni_over_nt: f32;
+        let cosine: f32;
+        let attenuation = Vec3::new(1.0, 1.0, 1.0);
+
+        if ray.dir.dot(hr.normal) > 0.0 {
+            outward_normal = -hr.normal;
+            ni_over_nt = self.ir;
+            cosine = self.ir * ray.dir.dot(hr.normal) / ray.dir.length();
+        } else {
+            outward_normal = hr.normal;
+            ni_over_nt = 1.0 / self.ir;
+            cosine = -ray.dir.dot(hr.normal) / ray.dir.length();
+        }
+
+
+        if let Some(refraction) = refract(ray.dir, outward_normal, ni_over_nt) {
+            if rand::random::<f32>() > schlick(cosine, self.ir) {
+                let scattered = Ray::new(hr.p, refraction);
+                return Some((scattered, attenuation));
+            }
+        }
         
-        let cannot_refract = refraction_ratio * sin_theta > 1.0;
-        let direction = if cannot_refract || schlick(cos_theta, refraction_ratio) > rand::random::<f32>() {
-            unit_dir.reflect(normal)
-        } else {
-            refract(unit_dir, normal, refraction_ratio)
-        };
-
-        let scattered = Ray::new(p, direction);
+        let reflected = reflect(ray.dir.unit_vector(), hr.normal);
+        let scattered = Ray::new(hr.p, reflected);
         Some((scattered, attenuation))
     }
 }
 
-fn refract(uv: Vec3, n: Vec3, etai_over_etat: f32) -> Vec3 {
-    let cos_theta = min(-uv.dot(n), 1.0);
-    let r_out_perp = etai_over_etat * (uv + cos_theta * n);
-    let r_out_parallel = -((1.0 - r_out_perp.length_squared()).abs().sqrt()) * n;
+pub fn reflect(m: Vec3, n: Vec3) -> Vec3 {
+    m - 2.0 * m.dot(n) * n
+}
 
-    r_out_perp + r_out_parallel
+fn refract(v: Vec3, n: Vec3, ni_over_nt: f32) -> Option<Vec3> {
+    let uv = v.unit_vector();
+    let dt = uv.dot(n);
+    let discriminant = 1.0 - ni_over_nt.powi(2) * (1.0 - dt.powi(2));
+    if discriminant > 0.0 {
+        let refracted = ni_over_nt * (uv - n * dt) - n * discriminant.sqrt();
+        Some(refracted)
+    } else {
+        None
+    }
 }
 
 fn schlick(cosine: f32, ref_idx: f32) -> f32 {
     let r0 = ((1.0 - ref_idx) / (1.0 + ref_idx)).powi(2);
-    r0 + (1.0 -r0) * (1.0 - cosine).powi(5)
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
 
 fn min(n: f32, m: f32) -> f32 {

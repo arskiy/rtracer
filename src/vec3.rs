@@ -119,18 +119,13 @@ impl ops::Mul<Vec3> for f32 {
     }
 }
 
-/*
-
 impl ops::Div<Vec3> for f32 {
     type Output = Vec3;
 
-    fn mul(self, other: Vec3) -> Vec3 {
-        Self {
-            other / self
-        }
+    fn div(self, other: Vec3) -> Vec3 {
+        other / self
     }
 }
-*/
 
 impl Vec3 {
     pub fn new_empty() -> Self {
@@ -214,18 +209,6 @@ impl Vec3 {
     pub fn near_zero(&self) -> bool {
         let s = 1e-8;
         (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
-    }
-
-    pub fn reflect(&self, n: Self) -> Self {
-        *self - 2.0 * self.dot(n) * n
-    }
-
-    pub fn refract(&self, n: Self, etai_over_etat: f32) -> Self {
-        let cos_theta = (-*self).dot(n).min(1.0);
-        let r_out_perp = etai_over_etat * (*self + cos_theta * n);
-        let r_out_parallel = -((1.0 - r_out_perp.length_squared()).abs().sqrt()) * n;
-
-        r_out_perp + r_out_parallel
     }
 
     pub fn random_in_unit_disk() -> Self {
