@@ -17,14 +17,14 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
         let mut scatter_dir = hr.normal + Vec3::random_unit_vector();
 
         if scatter_dir.near_zero() {
             scatter_dir = hr.normal
         }
 
-        let scattered = Ray::new(hr.p, scatter_dir);
+        let scattered = Ray::new(hr.p, scatter_dir, ray.time);
         let attenuation = self.albedo;
 
         Some((scattered, attenuation))
@@ -48,7 +48,11 @@ impl Metal {
 impl Material for Metal {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
         let reflected = reflect(ray.dir.unit_vector(), hr.normal);
-        let scattered = Ray::new(hr.p, reflected + self.fuzz * Vec3::random_in_unit_sphere());
+        let scattered = Ray::new(
+            hr.p,
+            reflected + self.fuzz * Vec3::random_in_unit_sphere(),
+            ray.time,
+        );
         let attenuation = self.albedo;
 
         if scattered.dir.dot(hr.normal) > 0.0 {
@@ -72,32 +76,6 @@ impl Dieletric {
 }
 
 impl Material for Dieletric {
-    /*
-    fn scatter(&self, ray: Ray, hr: &Hithrord) -> Option<(Ray, Color)> {
-        let attenuation = Vec3::new(1.0, 1.0, 1.0);
-
-        let (outward_normal, ni_over_nt, cosine) = if ray.dir.dot(hr.normal) > 0.0 {
-            let cosine = self.ir * ray.dir.dot(hr.normal);
-            (-hr.normal, self.ir, cosine)
-        } else {
-            let cosine = -ray.dir.dot(hr.normal);
-            (hr.normal, 1.0 / self.ir, cosine)
-        };
-
-        if let Some(refracted) = refract(ray.dir, outward_normal, ni_over_nt) {
-            let reflect_prob = schlick(cosine, self.ir);
-
-            if rand::random::<f32>() >= reflect_prob {
-                let scattered = Ray::new(hr.p, refracted);
-                return Some((scattered, attenuation))
-            }
-        }
-
-        let reflected = reflect(ray.dir, hr.normal);
-        let scattered = Ray::new(hr.p, reflected);
-        Some((scattered, attenuation))
-    }
-    */
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
         let outward_normal: Vec3;
         let ni_over_nt: f32;
@@ -114,16 +92,15 @@ impl Material for Dieletric {
             cosine = -ray.dir.dot(hr.normal) / ray.dir.length();
         }
 
-
         if let Some(refraction) = refract(ray.dir, outward_normal, ni_over_nt) {
             if rand::random::<f32>() > schlick(cosine, self.ir) {
-                let scattered = Ray::new(hr.p, refraction);
+                let scattered = Ray::new(hr.p, refraction, ray.time);
                 return Some((scattered, attenuation));
             }
         }
-        
+
         let reflected = reflect(ray.dir.unit_vector(), hr.normal);
-        let scattered = Ray::new(hr.p, reflected);
+        let scattered = Ray::new(hr.p, reflected, ray.time);
         Some((scattered, attenuation))
     }
 }

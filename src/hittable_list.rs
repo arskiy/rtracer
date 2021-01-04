@@ -1,4 +1,4 @@
-use crate::hittable::{Hittable, HitRecord};
+use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 
 pub struct HittableList {
@@ -7,9 +7,7 @@ pub struct HittableList {
 
 impl HittableList {
     pub fn new() -> Self {
-        Self {
-            objects: vec!(),
-        }
+        Self { objects: vec![] }
     }
 
     pub fn clear(&mut self) {
@@ -29,7 +27,7 @@ impl Hittable for HittableList {
         for object in &self.objects {
             if let Some(candidate_hit) = object.hit(r, t_min, closest_so_far) {
                 closest_so_far = candidate_hit.t;
-                hit = Some(candidate_hit);    
+                hit = Some(candidate_hit);
             }
         }
 

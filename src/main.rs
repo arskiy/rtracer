@@ -1,19 +1,19 @@
-pub mod vec3;
-pub mod color;
-pub mod ray;
-pub mod hittable;
-pub mod sphere;
-pub mod hittable_list;
 pub mod camera;
+pub mod color;
+pub mod hittable;
+pub mod hittable_list;
 pub mod material;
+pub mod ray;
+pub mod sphere;
+pub mod vec3;
 
-use vec3::*;
-use ray::Ray;
-use sphere::Sphere;
-use hittable::{Hittable};
-use hittable_list::HittableList;
 use camera::Camera;
+use hittable::Hittable;
+use hittable_list::HittableList;
 use material::*;
+use ray::Ray;
+use sphere::*;
+use vec3::*;
 
 use rand::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -23,7 +23,7 @@ use rayon::prelude::*;
 fn main() {
     // Image
     const ASPECT_RATIO: f32 = 3.0 / 2.0;
-    const NX: i32 = 700;
+    const NX: i32 = 600;
     const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
     let samples_per_pixel = 100;
     let max_depth = 50;
@@ -52,14 +52,26 @@ fn main() {
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
     let aperture = 0.1;
-    let cam = Camera::new(lookfrom, lookat, vup, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        60.0,
+        ASPECT_RATIO,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
 
     // Render
 
     println!("P3\n{} {}\n255", NX, NY);
 
     eprintln!("Rendering!");
-    let image: Arc<Mutex<Box<[[Color; NX as usize]; NY as usize]>>> = Arc::new(Mutex::new(Box::new([[Vec3::new_empty(); NX as usize]; NY as usize])));
+    let image: Arc<Mutex<Box<[[Color; NX as usize]; NY as usize]>>> = Arc::new(Mutex::new(
+        Box::new([[Vec3::new_empty(); NX as usize]; NY as usize]),
+    ));
 
     (0..NY).into_par_iter().rev().for_each(|y| {
         eprintln!("Scanlines remaining: {}", y);
@@ -72,7 +84,8 @@ fn main() {
                 let r = cam.get_ray(u, v);
                 pixel_color += ray_color(r, &world, max_depth);
             }
-            image.lock().unwrap()[y as usize][x as usize] = color::write_color(pixel_color, samples_per_pixel);
+            image.lock().unwrap()[y as usize][x as usize] =
+                color::write_color(pixel_color, samples_per_pixel);
         }
     });
 
@@ -80,7 +93,10 @@ fn main() {
     let img = image.lock().unwrap();
     for y in (0..img.len()).rev() {
         for x in 0..img[y].len() {
-            println!("{} {} {}", img[y][x].x as u8, img[y][x].y as u8, img[y][x].z as u8);
+            println!(
+                "{} {} {}",
+                img[y][x].x as u8, img[y][x].y as u8, img[y][x].z as u8
+            );
         }
     }
 }
@@ -97,12 +113,12 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
                 return x;
             }
             return Color::new_empty();
-        },
+        }
         None => {
             let unit_dir = r.dir.unit_vector();
             let t = 0.5 * (unit_dir.y + 1.0);
             return Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
-        },
+        }
     }
 }
 
@@ -111,12 +127,20 @@ fn random_scene_book() -> HittableList {
     let mut world = HittableList::new();
 
     let ground = Lambertian::new(Color::new(0.5, 0.5, 0.5));
-    world.push(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, ground)));
+    world.push(Box::new(Sphere::new(
+        Point3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        ground,
+    )));
 
     for i in -11..11 {
         for j in -11..11 {
             let choose_material = rand::random::<f32>();
-            let mut center = Point3::new(i as f32 + 0.9 * rng.gen::<f32>(), 0.2, j as f32 + 0.9 * rng.gen::<f32>());
+            let mut center = Point3::new(
+                i as f32 + 0.9 * rng.gen::<f32>(),
+                0.2,
+                j as f32 + 0.9 * rng.gen::<f32>(),
+            );
 
             if (center - Point3::new(4.0, 0.2, 0.0)).length() > 0.9 {
                 let radius = rng.gen_range(0.1..0.3);
@@ -126,7 +150,15 @@ fn random_scene_book() -> HittableList {
                     // diffuse
                     let albedo = Color::random() * Color::random();
                     let sphere_material = Lambertian::new(albedo);
-                    world.push(Box::new(Sphere::new(center, radius, sphere_material)));
+                    let center2 = center + Vec3::new(0.0, rng.gen_range(0.0..0.7), 0.0);
+                    world.push(Box::new(MovingSphere::new(
+                        center,
+                        center2,
+                        0.0,
+                        1.0,
+                        radius,
+                        sphere_material,
+                    )));
                 } else if choose_material < 0.95 {
                     // metal
                     let albedo = Color::random_range(0.5, 1.0);
@@ -143,13 +175,25 @@ fn random_scene_book() -> HittableList {
     }
 
     let material1 = Lambertian::new(Color::random());
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 1.0, 0.0), 1.0, material1)));
+    world.push(Box::new(Sphere::new(
+        Point3::new(0.0, 1.0, 0.0),
+        1.0,
+        material1,
+    )));
 
     let material2 = Metal::new(Color::new(0.9, 0.4, 0.4), 0.2);
-    world.push(Box::new(Sphere::new(Point3::new(-4.0, 1.0, 0.0), 1.0, material2)));
+    world.push(Box::new(Sphere::new(
+        Point3::new(-4.0, 1.0, 0.0),
+        1.0,
+        material2,
+    )));
 
     let material3 = Metal::new(Color::new(0.95, 0.95, 0.95), 0.0);
-    world.push(Box::new(Sphere::new(Point3::new(4.0, 1.0, 0.0), 1.0, material3)));
+    world.push(Box::new(Sphere::new(
+        Point3::new(4.0, 1.0, 0.0),
+        1.0,
+        material3,
+    )));
 
     world
 }

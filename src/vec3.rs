@@ -107,7 +107,7 @@ impl ops::Div<f32> for Vec3 {
     type Output = Self;
 
     fn div(self, t: f32) -> Self::Output {
-        self * (1.0/t)
+        self * (1.0 / t)
     }
 }
 
@@ -173,9 +173,7 @@ impl Vec3 {
     }
 
     pub fn dot(&self, other: Self) -> f32 {
-        self.x * other.x +
-            self.y * other.y +
-            self.z * other.z
+        self.x * other.x + self.y * other.y + self.z * other.z
     }
 
     pub fn cross(&self, other: Self) -> Self {
@@ -196,7 +194,7 @@ impl Vec3 {
         loop {
             p = Self::random_range(-1.0, 1.0);
             if p.length_squared() >= 1.0 {
-                break
+                break;
             }
         }
         p
@@ -229,7 +227,7 @@ impl IntoIterator for Vec3 {
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        vec!(self.x, self.y, self.z).into_iter()
+        vec![self.x, self.y, self.z].into_iter()
     }
 }
 
