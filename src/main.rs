@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+
 pub mod camera;
 pub mod hittable;
 pub mod material;
@@ -19,51 +21,15 @@ use std::sync::{Arc, Mutex};
 
 use rayon::prelude::*;
 
+// Image
+const ASPECT_RATIO: f32 = 3.0 / 2.0;
+const NX: i32 = 500;
+const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
+const SAMPLES_PER_PIXEL: i32 = 100;
+const MAX_DEPTH: i32 = 50;
+
 fn main() {
-    // Image
-    const ASPECT_RATIO: f32 = 3.0 / 2.0;
-    const NX: i32 = 300;
-    const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
-    let samples_per_pixel = 100;
-    let max_depth = 50;
-
-    // World
-    let mut world = random_scene_book();
-    //let mut world = HittableList::new();
-
-    /*
-    let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
-    let material_center = Lambertian::new(Color::new(0.7, 0.3, 0.3));
-    let material_left = Dieletric::new(8.0);
-    let material_right = Metal::new(Color::new(0.8, 0.8, 0.8), 0.0);
-
-    world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
-    world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
-    world.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
-    */
-
-    // Camera
-    let lookfrom = Point3::new(13.0, 2.0, 3.0);
-    let lookat = Point3::new(0.0, 0.0, 0.0);
-    //let lookfrom = Point3::new(-2.0, 2.0, -1.0);
-    //let lookat = Point3::new(0.0, 0.0, -1.0);
-    let vup = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = 10.0;
-    let aperture = 0.1;
-    let cam = Camera::new(
-        lookfrom,
-        lookat,
-        vup,
-        60.0,
-        ASPECT_RATIO,
-        aperture,
-        dist_to_focus,
-        0.0,
-        1.0,
-    );
-
-    // Render
+    let (world, cam) = first_scene();
 
     println!("P3\n{} {}\n255", NX, NY);
 
@@ -76,15 +42,15 @@ fn main() {
         eprintln!("Scanlines remaining: {}", y);
         for x in 0..NX {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-            for _ in 0..samples_per_pixel {
+            for _ in 0..SAMPLES_PER_PIXEL {
                 let u = (x as f32 + rand::random::<f32>()) / (NX - 1) as f32;
                 let v = (y as f32 + rand::random::<f32>()) / (NY - 1) as f32;
 
                 let r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, &world, max_depth);
+                pixel_color += ray_color(r, &world, MAX_DEPTH);
             }
             image.lock().unwrap()[y as usize][x as usize] =
-                Vec3::calc_color(pixel_color, samples_per_pixel);
+                Vec3::calc_color(pixel_color, SAMPLES_PER_PIXEL);
         }
     });
 
@@ -121,7 +87,41 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
     }
 }
 
-fn random_scene_book() -> HittableList {
+fn first_scene() -> (HittableList, Camera) {
+    let mut world = HittableList::new();
+
+    let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
+    let material_center = Lambertian::new(Color::new(0.7, 0.3, 0.3));
+    let material_left = Dieletric::new(1.5);
+    let material_right = Metal::new(Color::new(0.8, 0.2, 0.8), 0.2);
+
+    world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
+    world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
+    world.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
+
+
+    let lookfrom = Point3::new(0.0, 0.0, 1.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.0;
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        90.0,
+        ASPECT_RATIO,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
+
+    (world, cam)
+}
+
+fn random_scene_book() -> (HittableList, Camera) {
     let mut rng = rand::thread_rng();
     let mut world = HittableList::new();
 
@@ -194,5 +194,22 @@ fn random_scene_book() -> HittableList {
         material3,
     )));
 
-    world
+
+    let lookfrom = Point3::new(13.0, 2.0, 3.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        60.0,
+        ASPECT_RATIO,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
+    (world, cam)
 }
