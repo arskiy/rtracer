@@ -1,6 +1,6 @@
 use crate::vec3::*;
 
-pub fn write_color(pixel_color: Color, samples_per_pixel: i32) -> Vec3 {
+pub fn write_color(pixel_color: color, samples_per_pixel: i32) -> vec3 {
     let mut ret = pixel_color;
 
     let scale = 1.0 / samples_per_pixel as f32;

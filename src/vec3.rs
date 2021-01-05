@@ -220,6 +220,31 @@ impl Vec3 {
         }
         p
     }
+
+    pub fn at(&self, i: usize) -> f32 {
+        match i {
+            0 => self.x,
+            1 => self.y,
+            2 => self.z,
+            _ => panic!(format!("Out of bounds access in Vec3: {}", i)),
+        }
+    }
+
+
+    pub fn calc_color(pixel_color: Color, samples_per_pixel: i32) -> Vec3 {
+        let mut ret = pixel_color;
+    
+        let scale = 1.0 / samples_per_pixel as f32;
+        ret.x = (scale * ret.x).sqrt();
+        ret.y = (scale * ret.y).sqrt();
+        ret.z = (scale * ret.z).sqrt();
+    
+        ret.x = 256.0 * clamp(ret.x, 0.0, 0.99);
+        ret.y = 256.0 * clamp(ret.y, 0.0, 0.99);
+        ret.z = 256.0 * clamp(ret.z, 0.0, 0.99);
+    
+        ret
+    }
 }
 
 impl IntoIterator for Vec3 {
@@ -231,5 +256,17 @@ impl IntoIterator for Vec3 {
     }
 }
 
+fn clamp(x: f32, min: f32, max: f32) -> f32 {
+    if x < min {
+        min
+    } else if x > max {
+        max
+    } else {
+        x
+    }
+}
+
 pub type Color = Vec3;
 pub type Point3 = Vec3;
+
+

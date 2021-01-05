@@ -1,15 +1,14 @@
 pub mod camera;
-pub mod color;
 pub mod hittable;
-pub mod hittable_list;
 pub mod material;
 pub mod ray;
 pub mod sphere;
 pub mod vec3;
+pub mod aabb;
+pub mod bvh;
 
 use camera::Camera;
-use hittable::Hittable;
-use hittable_list::HittableList;
+use hittable::{Hittable, HittableList};
 use material::*;
 use ray::Ray;
 use sphere::*;
@@ -23,7 +22,7 @@ use rayon::prelude::*;
 fn main() {
     // Image
     const ASPECT_RATIO: f32 = 3.0 / 2.0;
-    const NX: i32 = 600;
+    const NX: i32 = 300;
     const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
     let samples_per_pixel = 100;
     let max_depth = 50;
@@ -85,7 +84,7 @@ fn main() {
                 pixel_color += ray_color(r, &world, max_depth);
             }
             image.lock().unwrap()[y as usize][x as usize] =
-                color::write_color(pixel_color, samples_per_pixel);
+                Vec3::calc_color(pixel_color, samples_per_pixel);
         }
     });
 
