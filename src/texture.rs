@@ -77,9 +77,17 @@ pub struct ImageTexture {
 
 impl ImageTexture {
     pub fn new(path: &str) -> Self { 
-        let image = image::open(path).expect("image not found").to_rgb8();
+        let image = image::open(path).expect("image not found").to_rgb();
         let (nx, ny) = image.dimensions();
         let data = image.into_raw();
+
+        /*
+        for y in 0..ny {
+            for x in 0..nx {
+                let idx = (3 * x + 3 * nx * y) as usize;
+                println!("{} {} {}", data[idx], data[idx + 1], data[idx + 2]);
+            }
+        }*/
             
         ImageTexture { data, nx, ny } 
     }
@@ -87,43 +95,25 @@ impl ImageTexture {
 
 impl Texture for ImageTexture {
     fn value(&self, mut u: f32, mut v: f32, _p: Point3) -> Color {
-        /*
-        let nx = self.nx as usize;
-        let ny = self.ny as usize;
+        if self.data.is_empty() {
+            // debugging aid
+            return Color::new(0.2, 0.5, 1.0);
+        }
+        
+        u = Vec3::clamp(u, 0.0, 1.0);
+        v = Vec3::clamp(v, 0.0, 1.0);
 
-        let mut i = (u * nx as f32) as usize;
-        let mut j = ((1.0 - v) * ny as f32) as usize;
+        let mut x = (u * self.nx as f32) as u32;
+        let mut y = ((1.0 - v) * self.ny as f32) as u32;
 
-        if i > nx - 1 { i = nx - 1 }
-        if j > ny - 1 { j = ny - 1 }
+        if x > self.nx - 1 { x = self.nx - 1 }
+        if y > self.ny - 1 { y = self.ny - 1 }
 
-        let idx = 3 * i + 3 * nx * j;
+        let idx = (3 * x + 3 * self.nx * y) as usize;
 
         let r = self.data[idx] as f32 / 255.0;
         let g = self.data[idx + 1] as f32 / 255.0;
         let b = self.data[idx + 2] as f32 / 255.0;
-        */
-
-        if self.data.is_empty() {
-            return Color::new(0.0, 1.0, 1.0);
-        }
-        
-        u = Vec3::clamp(u, 0.0, 1.0);
-        v = 1.0 - Vec3::clamp(v, 0.0, 1.0);
-
-        let mut i = (u * self.nx as f32) as u32;
-        let mut j = (v * self.ny as f32) as u32;
-
-        if i >= self.nx { i = self.nx - 1 }
-        if j >= self.ny { j = self.ny - 1 }
-
-        let color_scale = 1.0 / 255.0;
-
-        let idx = (3 * i + 3 * self.nx * j) as usize;
-
-        let r = self.data[idx] as f32 * color_scale;
-        let g = self.data[idx + 1] as f32 * color_scale;
-        let b = self.data[idx + 2] as f32 * color_scale;
 
         Color::new(r, g, b)
     }

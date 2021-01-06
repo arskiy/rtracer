@@ -99,13 +99,12 @@ impl Material for Dieletric {
 
         if let Some(refraction) = refract(ray.dir, outward_normal, ni_over_nt) {
             if rand::random::<f32>() > schlick(cosine, self.ir) {
-                let mut x = hr.p;
-                let scattered = Ray::new(x, -refraction, ray.time);
+                let scattered = Ray::new(hr.p, -refraction, ray.time);
                 return Some((scattered, attenuation));
             }
         }
 
-        let reflected = reflect(ray.dir.unit_vector(), hr.normal);
+        let reflected = reflect(ray.dir, hr.normal);
         let scattered = Ray::new(hr.p, reflected, ray.time);
         Some((scattered, attenuation))
     }
@@ -131,3 +130,5 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
     let r0 = ((1.0 - ref_idx) / (1.0 + ref_idx)).powi(2);
     r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
+
+// pub struct DiffuseLight

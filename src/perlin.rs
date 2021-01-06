@@ -12,7 +12,6 @@ pub struct Perlin {
 
 impl Perlin {
     pub fn new() -> Self {
-        let mut rng = rand::thread_rng();
         let mut ranfloat = vec!();
 
         for _ in 0..POINT_COUNT {
@@ -76,7 +75,7 @@ impl Perlin {
         let mut accum = 0.0;
         let mut weight = 1.0;
 
-        for i in 0..depth {
+        for _ in 0..depth {
             accum += weight * self.noise(p);
             weight *= 0.5;
             p *= 2.0;

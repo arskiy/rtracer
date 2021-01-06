@@ -32,9 +32,10 @@ const SAMPLES_PER_PIXEL: i32 = 100;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
-    let (world, cam) = image();
-
     println!("P3\n{} {}\n255", NX, NY);
+    // println!("P3\n1200 900\n255");
+
+    let (world, cam) = image();
 
     eprintln!("Rendering!");
     let image: Arc<Mutex<Box<[[Color; NX as usize]; NY as usize]>>> = Arc::new(Mutex::new(
