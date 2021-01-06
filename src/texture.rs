@@ -52,6 +52,45 @@ impl Texture for CheckerTexture {
     }
 }
 
+
+pub struct PolkaDotTexture {
+    bg: Box<dyn Texture>,
+    fg: Box<dyn Texture>,
+    dot_radius: f32,
+    dots_distance: f32
+}
+
+impl PolkaDotTexture {
+    pub fn new(bg: Box<dyn Texture>, fg: Box<dyn Texture>, dot_radius: f32, dots_distance: f32) -> Self {
+        Self { bg, fg, dot_radius, dots_distance }
+    }
+    
+    pub fn new_color(color_bg: Color, color_fg: Color, dot_radius: f32, dots_distance: f32) -> Self {
+        Self { bg: Box::new(SolidColorTexture::new(color_bg)), fg: Box::new(SolidColorTexture::new(color_fg)), dot_radius, dots_distance }
+    }
+}
+
+impl Texture for PolkaDotTexture {
+    fn value(&self, mut u: f32, mut v: f32, p: Point3) -> Color {
+        let grid = 600;
+
+        u = Vec3::clamp(u, 0.0, 1.0);
+        v = Vec3::clamp(v, 0.0, 1.0);
+
+        let mut x = (u * grid as f32) as u32;
+        let mut y = ((1.0 - v) * grid as f32) as u32;
+
+        if x > grid - 1 { x = grid - 1 }
+        if y > grid - 1 { y = grid - 1 }
+
+        if x as f32 / (self.dots_distance * 5.0) + y as f32 / (self.dots_distance * 5.0) < self.dot_radius {
+            self.fg.value(u, v, p)
+        } else {
+            self.bg.value(u, v, p)
+        }
+    }
+}
+
 pub struct NoiseTexture {
     noise: Perlin,
     scale: f32,

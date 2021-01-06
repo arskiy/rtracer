@@ -5,6 +5,7 @@ use crate::texture::*;
 
 pub trait Material {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)>;
+    fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { Color::new_empty() }
 }
 
 pub struct Lambertian {
@@ -128,4 +129,20 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
 
 pub struct DiffuseLight {
     emit: Box<Texture>,
+}
+
+impl DiffuseLight {
+    pub fn new(emit: Box<Texture>) -> Self {
+        Self { emit }
+    }
+
+    pub fn new_color(emit: Color) -> Self {
+        Self { emit: Box::new(SolidColorTexture::new(emit)) }
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> { None }
+
+    fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { self.emit.value(u, v, p) }
 }
