@@ -23,15 +23,10 @@ impl Lambertian {
 
 impl Material for Lambertian {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
-        let mut scatter_dir = hr.normal + Vec3::random_unit_vector();
+        let scatter_dir = hr.p + hr.normal + Vec3::random_in_unit_sphere();
 
-        if scatter_dir.near_zero() {
-            scatter_dir = hr.normal
-        }
-
-        let scattered = Ray::new(hr.p, scatter_dir, ray.time);
+        let scattered = Ray::new(hr.p, scatter_dir - hr.p, ray.time);
         let attenuation = self.albedo.value(hr.u, hr.v, hr.p);
-
         Some((scattered, attenuation))
     }
 }
@@ -131,4 +126,6 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
     r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
 
-// pub struct DiffuseLight
+pub struct DiffuseLight {
+    emit: Box<Texture>,
+}

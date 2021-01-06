@@ -189,17 +189,6 @@ impl Vec3 {
         *self / self.length()
     }
 
-    pub fn random_in_unit_sphere() -> Self {
-        let mut p;
-        loop {
-            p = Self::random_range(-1.0, 1.0);
-            if p.length_squared() >= 1.0 {
-                break;
-            }
-        }
-        p
-    }
-
     pub fn random_unit_vector() -> Self {
         Self::random_in_unit_sphere().unit_vector()
     }
@@ -253,6 +242,17 @@ impl Vec3 {
             max
         } else {
             x
+        }
+    }
+
+    pub fn random_in_unit_sphere() -> Self {
+        let mut rng = rand::thread_rng();
+        let unit = Vec3::new(1.0, 1.0, 1.0);
+        loop {
+            let p = 2.0 * Vec3::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>()) - unit;
+            if p.length_squared() < 1.0 {
+                return p
+            }
         }
     }
 }

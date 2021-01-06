@@ -33,9 +33,9 @@ const MAX_DEPTH: i32 = 50;
 
 fn main() {
     println!("P3\n{} {}\n255", NX, NY);
-    // println!("P3\n1200 900\n255");
+    // println!("P3\n1024 512\n255");
 
-    let (world, cam) = image();
+    let (world, cam) = two_checkered_spheres();
 
     eprintln!("Rendering!");
     let image: Arc<Mutex<Box<[[Color; NX as usize]; NY as usize]>>> = Arc::new(Mutex::new(
@@ -86,7 +86,8 @@ fn ray_color(r: Ray, world: &HittableList, depth: i32) -> Color {
         None => {
             let unit_dir = r.dir.unit_vector();
             let t = 0.5 * (unit_dir.y + 1.0);
-            return Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
+            // return Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
+            return Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.7, 0.7, 0.7) * t;
         }
     }
 }
@@ -282,10 +283,10 @@ fn two_perlin_spheres() -> (HittableList, Camera) {
 fn image() -> (HittableList, Camera) {
     let mut world = HittableList::new();
 
-    let texture = ImageTexture::new("../shapiro.jpg");
+    let texture = ImageTexture::new("../alteredstate-realbig.jpg");
     world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, 0.0), 2.0, Lambertian::new_texture(Box::new(texture)))));
 
-    let lookfrom = Point3::new(13.0, 2.0, 3.0);
+    let lookfrom = Point3::new(13.0, -2.0, 3.0);
     let lookat = Point3::new(0.0, 0.0, 0.0);
     let fov = 20.0;
     let vup = Vec3::new(0.0, 1.0, 0.0);

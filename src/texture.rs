@@ -87,7 +87,8 @@ impl ImageTexture {
                 let idx = (3 * x + 3 * nx * y) as usize;
                 println!("{} {} {}", data[idx], data[idx + 1], data[idx + 2]);
             }
-        }*/
+        }
+        */
             
         ImageTexture { data, nx, ny } 
     }

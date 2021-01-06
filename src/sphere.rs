@@ -4,7 +4,7 @@ use crate::ray::Ray;
 use crate::vec3::*;
 use crate::aabb::AABB;
 
-use std::f32::consts::PI;
+use std::f32::consts::{FRAC_PI_2, PI};
 
 pub struct Sphere<M: Material> {
     pub center: Point3,
@@ -164,11 +164,11 @@ impl<M: Sync + Material> Hittable for MovingSphere<M> {
 
 
 fn get_sphere_uv(p: Point3) -> (f32, f32) {
-    let theta = -p.y.acos();
-    let phi = -p.z.atan2(p.x) + PI;
+    let theta = p.y.asin();
+    let phi = p.z.atan2(p.x);
 
-    let u = phi / (2.0 * PI);
-    let v = theta / PI;
+    let u = 1.0 - (phi + PI) / (2.0 * PI);
+    let v = (theta + FRAC_PI_2) / PI;
 
     (u, v)
 }
