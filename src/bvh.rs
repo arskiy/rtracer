@@ -57,6 +57,8 @@ impl BVH {
             BVHNode::Branch { left, right } => 
                 AABB::surrounding_box(left.bounding_box(time0, time1).unwrap(), right.bounding_box(time0, time1).unwrap()),
         };
+
+        eprintln!("bbox: {:?}", bbox);
         
         Self {
             tree,

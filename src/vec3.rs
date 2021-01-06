@@ -239,11 +239,21 @@ impl Vec3 {
         ret.y = (scale * ret.y).sqrt();
         ret.z = (scale * ret.z).sqrt();
     
-        ret.x = 256.0 * clamp(ret.x, 0.0, 0.99);
-        ret.y = 256.0 * clamp(ret.y, 0.0, 0.99);
-        ret.z = 256.0 * clamp(ret.z, 0.0, 0.99);
+        ret.x = 256.0 * Self::clamp(ret.x, 0.0, 0.99);
+        ret.y = 256.0 * Self::clamp(ret.y, 0.0, 0.99);
+        ret.z = 256.0 * Self::clamp(ret.z, 0.0, 0.99);
     
         ret
+    }
+
+    pub fn clamp(x: f32, min: f32, max: f32) -> f32 {
+        if x < min {
+            min
+        } else if x > max {
+            max
+        } else {
+            x
+        }
     }
 }
 
@@ -256,15 +266,6 @@ impl IntoIterator for Vec3 {
     }
 }
 
-fn clamp(x: f32, min: f32, max: f32) -> f32 {
-    if x < min {
-        min
-    } else if x > max {
-        max
-    } else {
-        x
-    }
-}
 
 pub type Color = Vec3;
 pub type Point3 = Vec3;

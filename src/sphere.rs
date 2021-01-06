@@ -4,6 +4,8 @@ use crate::ray::Ray;
 use crate::vec3::*;
 use crate::aabb::AABB;
 
+use std::f32::consts::PI;
+
 pub struct Sphere<M: Material> {
     pub center: Point3,
     pub radius: f32,
@@ -46,11 +48,16 @@ impl<M: Sync + Material> Hittable for Sphere<M> {
             normal: Vec3::new_empty(),
             p: r.at(root),
             t: root,
+            u: 0.0,
+            v: 0.0,
             front_face: false,
             material: &self.material,
         };
 
         let outward_normal = (hr.p - self.center) / self.radius;
+        let (u, v) = get_sphere_uv(outward_normal);
+        hr.u = u;
+        hr.v = v;
         hr.set_face_normal(r, outward_normal);
 
         Some(hr)
@@ -125,11 +132,16 @@ impl<M: Sync + Material> Hittable for MovingSphere<M> {
             normal: Vec3::new_empty(),
             p: r.at(root),
             t: root,
+            u: 0.0,
+            v: 0.0,
             front_face: false,
             material: &self.material,
         };
 
         let outward_normal = (hr.p - self.calc_time(r.time)) / self.radius;
+        let (u, v) = get_sphere_uv(outward_normal);
+        hr.u = u;
+        hr.v = v;
         hr.set_face_normal(r, outward_normal);
 
         Some(hr)
@@ -148,4 +160,15 @@ impl<M: Sync + Material> Hittable for MovingSphere<M> {
 
         Some(AABB::surrounding_box(box0, box1))
     }
+}
+
+
+fn get_sphere_uv(p: Point3) -> (f32, f32) {
+    let theta = -p.y.acos();
+    let phi = -p.z.atan2(p.x) + PI;
+
+    let u = phi / (2.0 * PI);
+    let v = theta / PI;
+
+    (u, v)
 }

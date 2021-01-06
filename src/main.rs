@@ -8,6 +8,8 @@ pub mod sphere;
 pub mod vec3;
 pub mod aabb;
 pub mod bvh;
+pub mod texture;
+pub mod perlin;
 
 use camera::Camera;
 use hittable::{Hittable, HittableList};
@@ -15,6 +17,7 @@ use material::*;
 use ray::Ray;
 use sphere::*;
 use vec3::*;
+use texture::*;
 
 use rand::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -29,7 +32,7 @@ const SAMPLES_PER_PIXEL: i32 = 100;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
-    let (world, cam) = first_scene();
+    let (world, cam) = image();
 
     println!("P3\n{} {}\n255", NX, NY);
 
@@ -92,12 +95,14 @@ fn first_scene() -> (HittableList, Camera) {
 
     let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
     let material_center = Lambertian::new(Color::new(0.7, 0.3, 0.3));
+    let material_bh = Lambertian::new(Color::new(0.2, 0.3, 0.8));
     let material_left = Dieletric::new(1.5);
     let material_right = Metal::new(Color::new(0.8, 0.2, 0.8), 0.2);
 
     world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
     world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
     world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
+    world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -2.0), 0.5, material_bh)));
     world.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
 
 
@@ -125,7 +130,7 @@ fn random_scene_book() -> (HittableList, Camera) {
     let mut rng = rand::thread_rng();
     let mut world = HittableList::new();
 
-    let ground = Lambertian::new(Color::new(0.5, 0.5, 0.5));
+    let ground = Lambertian::new_texture(Box::new(CheckerTexture::new_color(Color::new(0.1, 0.1, 0.1), Color::new(0.9, 0.9, 0.9))));
     world.push(Box::new(Sphere::new(
         Point3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -197,14 +202,99 @@ fn random_scene_book() -> (HittableList, Camera) {
 
     let lookfrom = Point3::new(13.0, 2.0, 3.0);
     let lookat = Point3::new(0.0, 0.0, 0.0);
+    let fov = 60.0;
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
-    let aperture = 0.1;
+    let aperture = 0.0;
     let cam = Camera::new(
         lookfrom,
         lookat,
         vup,
-        60.0,
+        fov,
+        ASPECT_RATIO,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
+    (world, cam)
+}
+
+fn two_checkered_spheres() -> (HittableList, Camera) {
+    let mut world = HittableList::new();
+    let checker = Lambertian::new_texture(Box::new(CheckerTexture::new_color(Color::new(0.1, 0.1, 0.1), Color::new(0.9, 0.9, 0.9))));
+
+    world.push(Box::new(Sphere::new(Point3::new(0.0, -10.0, 0.0), 10.0, checker)));
+
+    let checker = Lambertian::new_texture(Box::new(CheckerTexture::new_color(Color::new(0.1, 0.1, 0.1), Color::new(0.9, 0.9, 0.9))));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 10.0, 0.0), 10.0, checker)));
+
+    let lookfrom = Point3::new(13.0, 2.0, 3.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let fov = 20.0;
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.0;
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        fov,
+        ASPECT_RATIO,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
+    (world, cam)
+}
+
+fn two_perlin_spheres() -> (HittableList, Camera) {
+    let mut world = HittableList::new();
+
+    let pertext = NoiseTexture::new(4.0);
+    world.push(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new_texture(Box::new(pertext)))));
+
+    let pertext = NoiseTexture::new(4.0);
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new_texture(Box::new(pertext)))));
+
+    let lookfrom = Point3::new(13.0, 2.0, 3.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let fov = 20.0;
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.0;
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        fov,
+        ASPECT_RATIO,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
+    (world, cam)
+}
+
+fn image() -> (HittableList, Camera) {
+    let mut world = HittableList::new();
+
+    let texture = ImageTexture::new("../shapiro.jpg");
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, 0.0), 2.0, Lambertian::new_texture(Box::new(texture)))));
+
+    let lookfrom = Point3::new(13.0, 2.0, 3.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let fov = 20.0;
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.0;
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        fov,
         ASPECT_RATIO,
         aperture,
         dist_to_focus,

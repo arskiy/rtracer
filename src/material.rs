@@ -1,17 +1,22 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::*;
+use crate::texture::*;
 
 pub trait Material {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)>;
 }
 
 pub struct Lambertian {
-    pub albedo: Color,
+    pub albedo: Box<dyn Texture>,
 }
 
 impl Lambertian {
     pub fn new(albedo: Color) -> Self {
+        Self { albedo: Box::new(SolidColorTexture::new(albedo)) }
+    }
+
+    pub fn new_texture(albedo: Box<dyn Texture>) -> Self {
         Self { albedo }
     }
 }
@@ -25,7 +30,7 @@ impl Material for Lambertian {
         }
 
         let scattered = Ray::new(hr.p, scatter_dir, ray.time);
-        let attenuation = self.albedo;
+        let attenuation = self.albedo.value(hr.u, hr.v, hr.p);
 
         Some((scattered, attenuation))
     }
@@ -94,7 +99,8 @@ impl Material for Dieletric {
 
         if let Some(refraction) = refract(ray.dir, outward_normal, ni_over_nt) {
             if rand::random::<f32>() > schlick(cosine, self.ir) {
-                let scattered = Ray::new(hr.p, refraction, ray.time);
+                let mut x = hr.p;
+                let scattered = Ray::new(x, -refraction, ray.time);
                 return Some((scattered, attenuation));
             }
         }
