@@ -27,10 +27,10 @@ use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 
 // Image
-const ASPECT_RATIO: f32 = 3.0 / 2.0;
+const ASPECT_RATIO: f32 = 2.0 / 2.0;
 const NX: i32 = 500;
 const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
-const SAMPLES_PER_PIXEL: i32 = 200;
+const SAMPLES_PER_PIXEL: i32 = 800;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
@@ -407,11 +407,11 @@ fn cornell_box() -> (HittableList, Camera, Color) {
     let red: Lambertian<SolidColorTexture> = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
     let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
-    let light = DiffuseLight::new(SolidColorTexture::new(Color::new(15.0, 15.0, 15.0)));
+    let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 12.0, 12.0)));
 
     world.push(Box::new(YZRect::new(green, 0.0, 555.0, 0.0, 555.0, 555.0)));
     world.push(Box::new(YZRect::new(red, 0.0, 555.0, 0.0, 555.0, 0.0)));
-    world.push(Box::new(XZRect::new(light, 213.0, 343.0, 227.0, 332.0, 554.0)));
+    world.push(Box::new(XZRect::new(light, 177.0, 392.0, 163.0, 393.0, 554.0)));
     world.push(Box::new(XZRect::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0)));
     world.push(Box::new(XZRect::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
     world.push(Box::new(XYRect::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
