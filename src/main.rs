@@ -27,7 +27,7 @@ use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 
 // Image
-const ASPECT_RATIO: f32 = 3.0 / 2.0;
+const ASPECT_RATIO: f32 = 2.0 / 2.0;
 const NX: i32 = 500;
 const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
 const SAMPLES_PER_PIXEL: i32 = 200;
@@ -365,11 +365,14 @@ fn simple_light() -> (HittableList, Camera, Color) {
     let pertext = NoiseTexture::new(4.0);
     world.push(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new_texture(Box::new(pertext)))));
 
-    let pertext = NoiseTexture::new(4.0);
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new_texture(Box::new(pertext)))));
+    // let pertext = NoiseTexture::new(4.0);
+    // world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new_texture(Box::new(pertext)))));
+
+    let texture = ImageTexture::new("../earthmap.jpg");
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new_texture(Box::new(texture)))));
 
     let difflight = DiffuseLight::new_color(Color::new(4.0, 4.0, 4.0));
-    world.push(Box::new(XYRect::new(difflight, 3.0, 5.0, 1.0, 3.0, -2.0)));
+    world.push(Box::new(AARect::new(Plane::XY, difflight, 3.0, 5.0, 1.0, 3.0, -2.0)));
 
     let difflight = DiffuseLight::new_color(Color::new(9.0, 2.0, 9.0));
     world.push(Box::new(Sphere::new(Point3::new(-5.0, 5.5, 0.0), 0.5, difflight)));
@@ -398,23 +401,25 @@ fn simple_light() -> (HittableList, Camera, Color) {
 
 fn cornell_box() -> (HittableList, Camera, Color) {
     let mut world = HittableList::new();
-    let background = Color::new(1.0, 1.0, 1.0);
+    let background = Color::new_empty();
 
     let red = Lambertian::new(Color::new(0.65, 0.05, 0.05));
     let white = Lambertian::new(Color::new(0.73, 0.73, 0.73));
     let green = Lambertian::new(Color::new(0.12, 0.45, 0.15));
-    let light = DiffuseLight::new_color(Color::new(15.0, 15.0, 15.0));
+    let light = DiffuseLight::new_color(Color::new(9.0, 9.0, 9.0));
 
-    world.push(Box::new(YZRect::new(green, 0.0, 555.0, 0.0, 555.0, 555.0)));
-    world.push(Box::new(YZRect::new(red, 0.0, 555.0, 0.0, 555.0, 0.0)));
-    world.push(Box::new(XZRect::new(light, 213.0, 343.0, 227.0, 332.0, 554.0)));
-    world.push(Box::new(XZRect::new(white, 0.0, 555.0, 0.0, 555.0, 0.0)));
+    world.push(Box::new(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0)));
+    world.push(Box::new(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0)));
+
+    world.push(Box::new(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0)));
+
+    world.push(Box::new(AARect::new(Plane::XZ, white, 0.0, 555.0, 0.0, 555.0, 0.0)));
 
     let white = Lambertian::new(Color::new(0.73, 0.73, 0.73));
-    world.push(Box::new(XZRect::new(white, 0.0, 555.0, 0.0, 555.0, 555.0)));
+    world.push(Box::new(AARect::new(Plane::XZ, white, 0.0, 555.0, 0.0, 555.0, 555.0)));
 
     let white = Lambertian::new(Color::new(0.73, 0.73, 0.73));
-    world.push(Box::new(XYRect::new(white, 0.0, 555.0, 0.0, 555.0, 555.0)));
+    world.push(Box::new(AARect::new(Plane::XY, white, 0.0, 555.0, 0.0, 555.0, 555.0)));
 
     let lookfrom = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);

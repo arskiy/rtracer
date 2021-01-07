@@ -10,7 +10,7 @@ pub struct HitRecord<'a> {
     pub u: f32,
     pub v: f32,
     pub front_face: bool,
-    pub material: &'a dyn Material,
+    pub material: &'a Box<dyn Material>,
 }
 
 impl HitRecord<'_> {

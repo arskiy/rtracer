@@ -3,7 +3,7 @@ use crate::ray::Ray;
 use crate::vec3::*;
 use crate::texture::*;
 
-pub trait Material {
+pub trait Material: Sync {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)>;
     fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { Color::new_empty() }
 }
@@ -128,11 +128,11 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
 }
 
 pub struct DiffuseLight {
-    emit: Box<Texture>,
+    emit: Box<dyn Texture>,
 }
 
 impl DiffuseLight {
-    pub fn new(emit: Box<Texture>) -> Self {
+    pub fn new(emit: Box<dyn Texture>) -> Self {
         Self { emit }
     }
 
