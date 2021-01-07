@@ -135,7 +135,7 @@ impl<M: Material> YZRect<M> {
 
 impl<M: Sync + Material> Hittable for YZRect<M> { 
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
-        let t = (self.k - r.orig.z) / r.dir.z;
+        let t = (self.k - r.orig.x) / r.dir.x;
 
         if t < t_min || t > t_max { return None; }
 
@@ -170,5 +170,39 @@ impl<M: Sync + Material> Hittable for YZRect<M> {
 
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
         Some(AABB::new(Point3::new(self.k - 0.0001, self.y0, self.z0), Point3::new(self.k + 0.0001, self.y1, self.z1)))
+    }
+}
+
+pub struct RectBox {
+    box_min: Point3,
+    box_max: Point3,
+    sides: HittableList,
+}
+
+impl RectBox {
+    pub fn new<M: Material + Clone + 'static>(p0: Point3, p1: Point3, material: M) -> Self {
+        let box_min = p0;
+        let box_max = p1;
+        let mut sides = HittableList::new();
+        sides.push(Box::new(XYRect::new(material.clone(), p0.x, p1.x, p0.y, p1.y, p1.z)));
+        sides.push(Box::new(XYRect::new(material.clone(), p0.x, p1.x, p0.y, p1.y, p0.z)));
+        sides.push(Box::new(XZRect::new(material.clone(), p0.x, p1.x, p0.z, p1.z, p1.y)));
+        sides.push(Box::new(XZRect::new(material.clone(), p0.x, p1.x, p0.z, p1.z, p0.y)));
+        sides.push(Box::new(YZRect::new(material.clone(), p0.y, p1.y, p0.z, p1.z, p1.x)));
+        sides.push(Box::new(YZRect::new(material, p0.y, p1.y, p0.z, p1.z, p0.x)));
+        Self {
+            box_min,
+            box_max,
+            sides,
+        }
+    }
+}
+
+impl Hittable for RectBox {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        self.sides.hit(r, t_min, t_max)
+    }
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
+        Some(AABB::new(self.box_min, self.box_max))
     }
 }

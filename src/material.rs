@@ -3,26 +3,23 @@ use crate::ray::Ray;
 use crate::vec3::*;
 use crate::texture::*;
 
-pub trait Material {
+pub trait Material: Sync {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)>;
     fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { Color::new_empty() }
 }
 
-pub struct Lambertian {
-    pub albedo: Box<dyn Texture>,
+#[derive(Clone)]
+pub struct Lambertian<T: Texture> {
+    pub albedo: T,
 }
 
-impl Lambertian {
-    pub fn new(albedo: Color) -> Self {
-        Self { albedo: Box::new(SolidColorTexture::new(albedo)) }
-    }
-
-    pub fn new_texture(albedo: Box<dyn Texture>) -> Self {
+impl<T: Texture> Lambertian<T> {
+    pub fn new(albedo: T) -> Self {
         Self { albedo }
     }
 }
 
-impl Material for Lambertian {
+impl<T: Texture> Material for Lambertian<T> {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
         let scatter_dir = hr.p + hr.normal + Vec3::random_in_unit_sphere();
 
@@ -32,6 +29,7 @@ impl Material for Lambertian {
     }
 }
 
+#[derive(Clone)]
 pub struct Metal {
     pub albedo: Color,
     pub fuzz: f32,
@@ -64,6 +62,7 @@ impl Material for Metal {
     }
 }
 
+#[derive(Clone)]
 pub struct Dieletric {
     ir: f32,
 }
@@ -127,21 +126,18 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
     r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
 
-pub struct DiffuseLight {
-    emit: Box<Texture>,
+#[derive(Clone)]
+pub struct DiffuseLight<T: Texture> {
+    emit: T,
 }
 
-impl DiffuseLight {
-    pub fn new(emit: Box<Texture>) -> Self {
+impl<T: Texture> DiffuseLight<T> {
+    pub fn new(emit: T) -> Self {
         Self { emit }
     }
-
-    pub fn new_color(emit: Color) -> Self {
-        Self { emit: Box::new(SolidColorTexture::new(emit)) }
-    }
 }
 
-impl Material for DiffuseLight {
+impl<T: Texture> Material for DiffuseLight<T> {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> { None }
 
     fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { self.emit.value(u, v, p) }

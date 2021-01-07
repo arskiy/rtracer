@@ -5,6 +5,7 @@ pub trait Texture: Sync {
     fn value(&self, u: f32, v: f32, p: Point3) -> Color;
 }
 
+#[derive(Clone)]
 pub struct SolidColorTexture {
     color_value: Color,
 }

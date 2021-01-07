@@ -98,6 +98,8 @@ fn ray_color(r: Ray, background: Color, world: &HittableList, depth: i32) -> Col
     }
 }
 
+/*
+
 fn first_scene() -> (HittableList, Camera, Color) {
     let mut world = HittableList::new();
     let background = Color::new(0.7, 0.8, 1.0);
@@ -363,10 +365,10 @@ fn simple_light() -> (HittableList, Camera, Color) {
     let background = Color::new_empty();
 
     let pertext = NoiseTexture::new(4.0);
-    world.push(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new_texture(Box::new(pertext)))));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new_texture(pertext))));
 
     let pertext = NoiseTexture::new(4.0);
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new_texture(Box::new(pertext)))));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new_texture(pertext))));
 
     let difflight = DiffuseLight::new_color(Color::new(4.0, 4.0, 4.0));
     world.push(Box::new(XYRect::new(difflight, 3.0, 5.0, 1.0, 3.0, -2.0)));
@@ -395,26 +397,27 @@ fn simple_light() -> (HittableList, Camera, Color) {
 
     (world, cam, background)
 }
+*/
+
 
 fn cornell_box() -> (HittableList, Camera, Color) {
     let mut world = HittableList::new();
-    let background = Color::new(1.0, 1.0, 1.0);
+    let background = Color::new(0.0, 0.0, 0.0);
 
-    let red = Lambertian::new(Color::new(0.65, 0.05, 0.05));
-    let white = Lambertian::new(Color::new(0.73, 0.73, 0.73));
-    let green = Lambertian::new(Color::new(0.12, 0.45, 0.15));
-    let light = DiffuseLight::new_color(Color::new(15.0, 15.0, 15.0));
+    let red: Lambertian<SolidColorTexture> = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
+    let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
+    let light = DiffuseLight::new(SolidColorTexture::new(Color::new(15.0, 15.0, 15.0)));
 
     world.push(Box::new(YZRect::new(green, 0.0, 555.0, 0.0, 555.0, 555.0)));
     world.push(Box::new(YZRect::new(red, 0.0, 555.0, 0.0, 555.0, 0.0)));
     world.push(Box::new(XZRect::new(light, 213.0, 343.0, 227.0, 332.0, 554.0)));
-    world.push(Box::new(XZRect::new(white, 0.0, 555.0, 0.0, 555.0, 0.0)));
+    world.push(Box::new(XZRect::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0)));
+    world.push(Box::new(XZRect::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
+    world.push(Box::new(XYRect::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
 
-    let white = Lambertian::new(Color::new(0.73, 0.73, 0.73));
-    world.push(Box::new(XZRect::new(white, 0.0, 555.0, 0.0, 555.0, 555.0)));
-
-    let white = Lambertian::new(Color::new(0.73, 0.73, 0.73));
-    world.push(Box::new(XYRect::new(white, 0.0, 555.0, 0.0, 555.0, 555.0)));
+    world.push(Box::new(RectBox::new(Point3::new(130.0, 0.0, 65.0), Point3::new(295.0, 165.0, 230.0), white.clone())));
+    world.push(Box::new(RectBox::new(Point3::new(265.0, 0.0, 295.0), Point3::new(430.0, 330.0, 460.0), white)));
 
     let lookfrom = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);
