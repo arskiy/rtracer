@@ -4,8 +4,9 @@ use crate::vec3::*;
 use crate::texture::*;
 
 pub trait Material: Sync {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)>;
-    fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { Color::new_empty() }
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> { None }
+    fn emitted(&self, _u: f32, _v: f32, _p: Point3) -> Color { Color::new_empty() }
+    fn scattering_pdf(&self, ray: Ray, hr: &HitRecord, scattered: Ray) -> f32 { 0.0 }
 }
 
 #[derive(Clone)]
@@ -141,4 +142,22 @@ impl<T: Texture> Material for DiffuseLight<T> {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> { None }
 
     fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { self.emit.value(u, v, p) }
+}
+
+pub struct Isotropic {
+    albedo: Box<dyn Texture>,
+}
+
+impl Isotropic {
+    pub fn new(albedo: Box<dyn Texture>) -> Self {
+        Self { albedo }
+    }
+}
+
+impl Material for Isotropic {
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> { 
+        let scattered = Ray::new(hr.p, Vec3::random_in_unit_sphere(), ray.time);
+        let attenuation = self.albedo.value(hr.u, hr.v, hr.p);
+        Some((scattered, attenuation))
+    }
 }

@@ -215,7 +215,16 @@ impl Vec3 {
             0 => self.x,
             1 => self.y,
             2 => self.z,
-            _ => panic!(format!("Out of bounds access in Vec3: {}", i)),
+            _ => panic!(format!("out of bounds access in vec3: {}", i)),
+        }
+    }
+
+    pub fn at_mut(&mut self, i: usize, v: f32) {
+        match i {
+            0 => self.x = v,
+            1 => self.y = v,
+            2 => self.z = v,
+            _ => panic!(format!("out of bounds write in vec3: {} with value {}", i, v)),
         }
     }
 

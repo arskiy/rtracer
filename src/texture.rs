@@ -109,6 +109,7 @@ impl Texture for NoiseTexture {
     }
 }
 
+#[derive(Clone)]
 pub struct ImageTexture {
     data: Vec<u8>,
     nx: u32,
