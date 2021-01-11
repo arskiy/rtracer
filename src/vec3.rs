@@ -229,7 +229,7 @@ impl Vec3 {
     }
 
 
-    pub fn calc_color(pixel_color: Color, samples_per_pixel: i32) -> Vec3 {
+    pub fn calc_color(pixel_color: Color, samples_per_pixel: usize) -> Vec3 {
         let mut ret = pixel_color;
     
         let scale = 1.0 / samples_per_pixel as f32;

@@ -132,6 +132,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "halton"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be629448e3d85a1be12868f190df524655fea8ec3f143e14d803e298f618acae"
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -371,6 +377,7 @@ dependencies = [
 name = "rei-treicem"
 version = "0.1.0"
 dependencies = [
+ "halton",
  "image",
  "rand",
  "rayon",

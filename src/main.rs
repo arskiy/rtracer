@@ -21,32 +21,52 @@ use vec3::*;
 use texture::*;
 use aarect::*;
 
-use rand::prelude::*;
-use std::sync::{Arc, Mutex};
+use std::mem;
+use std::ptr;
 
+use rand::prelude::*;
+
+use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 
 // Image
 const ASPECT_RATIO: f32 = 2.0 / 2.0;
-const NX: i32 = 500;
-const NY: i32 = (NX as f32 / ASPECT_RATIO) as i32;
-const SAMPLES_PER_PIXEL: i32 = 6000;
+const NX: usize = 1000;
+const NY: usize = (NX as f32 / ASPECT_RATIO) as usize;
+const SAMPLES_PER_PIXEL: usize = 10;
 const MAX_DEPTH: i32 = 50;
+
+// assumes constructor will never panic. we're safe using just Box::new()
+macro_rules! make_array {
+    ($constructor:expr; $n:expr) => {{
+        let mut items: [_; $n] = mem::MaybeUninit::uninit().assume_init();
+        for place in items.iter_mut() {
+            ptr::write(place, $constructor);
+        }
+        items
+    }}
+}
 
 fn main() {
     println!("P3\n{} {}\n255", NX, NY);
 
-    let (world, cam, background) = cornell_smoke();
+    let (world, cam, background) = cornell_box();
 
     eprintln!("Rendering!");
-    let image: Arc<Mutex<Box<[[Color; NX as usize]; NY as usize]>>> = Arc::new(Mutex::new(
-        Box::new([[Vec3::new_empty(); NX as usize]; NY as usize]),
-    ));
+    let image = unsafe { Arc::new(Mutex::new(
+        Box::new(make_array!( Box::new([Vec3::new_empty(); NX]); NY ),
+    ))) };
+
+    // deterministic and low-discrepancy sequence for MC sims
+    let hx = halton::Sequence::new(2).map(|x| x as f32).take(SAMPLES_PER_PIXEL).collect::<Vec<f32>>();
+    let hy = halton::Sequence::new(3).map(|x| x as f32).take(SAMPLES_PER_PIXEL).collect::<Vec<f32>>();
 
     (0..NY).into_par_iter().rev().for_each(|y| {
         eprintln!("Scanlines remaining: {}", y);
         for x in 0..NX {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+
+            /*
             for _ in 0..SAMPLES_PER_PIXEL {
                 let u = (x as f32 + rand::random::<f32>()) / (NX - 1) as f32;
                 let v = (y as f32 + rand::random::<f32>()) / (NY - 1) as f32;
@@ -54,6 +74,16 @@ fn main() {
                 let r = cam.get_ray(u, v);
                 pixel_color += ray_color(r, background, &world, MAX_DEPTH);
             }
+            */
+
+            for i in 0..SAMPLES_PER_PIXEL {
+                let u = (x as f32 + hx[i]) / (NX - 1) as f32;
+                let v = (y as f32 + hy[i]) / (NY - 1) as f32;
+
+                let r = cam.get_ray(u, v);
+                pixel_color += ray_color(r, background, &world, MAX_DEPTH);
+            }
+
             image.lock().unwrap()[y as usize][x as usize] =
                 Vec3::calc_color(pixel_color, SAMPLES_PER_PIXEL);
         }
