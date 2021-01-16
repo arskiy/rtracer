@@ -11,6 +11,8 @@ pub mod bvh;
 pub mod texture;
 pub mod perlin;
 pub mod aarect;
+pub mod onb;
+pub mod pdf;
 
 use camera::Camera;
 use hittable::*;
@@ -20,20 +22,19 @@ use sphere::*;
 use vec3::*;
 use texture::*;
 use aarect::*;
+use pdf::*;
 
 use std::mem;
 use std::ptr;
-
-use rand::prelude::*;
 
 use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 
 // Image
-const ASPECT_RATIO: f32 = 2.0 / 2.0;
-const NX: usize = 1000;
+const ASPECT_RATIO: f32 = 1.0;
+const NX: usize = 500;
 const NY: usize = (NX as f32 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 10;
+const SAMPLES_PER_PIXEL: usize = 200;
 const MAX_DEPTH: i32 = 50;
 
 // assumes constructor will never panic. we're safe using just Box::new()
@@ -106,45 +107,52 @@ fn ray_color(r: Ray, background: Color, world: &HittableList, depth: i32) -> Col
         return Color::new_empty();
     }
 
+    let lights = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
+    let lights = Box::new(AARect::new(Plane::XZ, lights, 177.0, 392.0, 163.0, 393.0, 554.0));
+
     match world.hit(&r, 0.001, std::f32::INFINITY) {
         Some(hit) => {
             let emitted = hit.material.emitted(hit.u, hit.v, hit.p);
 
-            if let Some((scattered, attenuation)) = hit.material.scatter(r, &hit) {
-                return emitted + attenuation * ray_color(scattered, background, world, depth - 1);
+            if let Some((_scattered, attenuation, _pdf)) = hit.material.scatter(r.clone(), &hit) {
+                let light_pdf = HittablePDF::new(hit.p, lights);
+
+                let scattered = Ray::new(hit.p, light_pdf.generate(), r.time);
+
+                // let p = CosinePDF::new(hit.normal);
+                // let scattered = Ray::new(hit.p, p.generate(), r.time);
+
+                let pdf_val = light_pdf.value(scattered.dir);
+
+                return emitted + attenuation * 
+                    hit.material.scattering_pdf(r, &hit, scattered.clone())
+                    * ray_color(scattered, background, world, depth - 1) / pdf_val;
             }
 
             return emitted;
         }
         None => {
-            /*
-            let unit_dir = r.dir.unit_vector();
-            let t = 0.5 * (unit_dir.y + 1.0);
-            return Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
-            // return Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.7, 0.7, 0.7) * t;
-            */
             return background;
         }
     }
 }
 
-/*
-
 fn first_scene() -> (HittableList, Camera, Color) {
     let mut world = HittableList::new();
     let background = Color::new(0.7, 0.8, 1.0);
 
-    let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
-    let material_center = Lambertian::new(Color::new(0.7, 0.3, 0.3));
-    let material_bh = Lambertian::new(Color::new(0.2, 0.3, 0.8));
+    let material_ground = Lambertian::new(SolidColorTexture::new(Color::new(0.8, 0.8, 0.0)));
+    let material_center = Lambertian::new(SolidColorTexture::new(Color::new(0.7, 0.3, 0.3)));
+    let material_bh = Lambertian::new(SolidColorTexture::new(Color::new(0.2, 0.3, 0.8)));
     let material_left = Dieletric::new(1.5);
     let material_right = Metal::new(Color::new(0.8, 0.2, 0.8), 0.2);
 
     world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center.clone())));
     world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
     world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -2.0), 0.5, material_bh)));
     world.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
+    world.push(Box::new(AARect::new(Plane::XY, material_center, 0.5, 0.5, 1.5, 0.0, 3.0)));
 
 
     let lookfrom = Point3::new(0.0, 0.0, 1.0);
@@ -167,6 +175,7 @@ fn first_scene() -> (HittableList, Camera, Color) {
 
     (world, cam, background)
 }
+/*
 
 fn random_scene_book() -> (HittableList, Camera, Color) {
     let mut rng = rand::thread_rng();
@@ -390,21 +399,23 @@ fn image() -> (HittableList, Camera, Color) {
     (world, cam, background)
 }
 
+*/
+
 fn simple_light() -> (HittableList, Camera, Color) {
-    let mut world = HittableList::new();
+    let mut world = HittableList::default();
     let background = Color::new_empty();
 
     let pertext = NoiseTexture::new(4.0);
-    world.push(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new_texture(pertext))));
+    world.push(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new(pertext)));
 
     let pertext = NoiseTexture::new(4.0);
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new_texture(pertext))));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new(pertext))));
 
-    let difflight = DiffuseLight::new_color(Color::new(4.0, 4.0, 4.0));
-    world.push(Box::new(XYRect::new(difflight, 3.0, 5.0, 1.0, 3.0, -2.0)));
+    let difflight = DiffuseLight::new(SolidColorTexture::new(Color::new(4.0, 4.0, 4.0)));
+    world.push(Box::new(AARect::new(Plane::XY, difflight, 3.0, 5.0, 3.0, 5.0, -2.0)));
 
-    let difflight = DiffuseLight::new_color(Color::new(9.0, 2.0, 9.0));
-    world.push(Box::new(Sphere::new(Point3::new(-5.0, 5.5, 0.0), 0.5, difflight)));
+    let difflight = DiffuseLight::new(SolidColorTexture::new(Color::new(9.0, 9.0, 9.0)));
+    world.push(Box::new(Sphere::new(Point3::new(3.0, 0.0, 0.0), 1.0, difflight)));
 
     let lookfrom = Point3::new(26.0, 3.0, 6.0);
     let lookat = Point3::new(0.0, 2.0, 0.0);
@@ -427,21 +438,23 @@ fn simple_light() -> (HittableList, Camera, Color) {
 
     (world, cam, background)
 }
-*/
 
 
 fn cornell_box() -> (HittableList, Camera, Color) {
-    let mut world = HittableList::new();
+    let mut world = HittableList::default();
+    // let mut lights = HittableList::new();
+
     let background = Color::new(0.0, 0.0, 0.0);
 
     let red: Lambertian<SolidColorTexture> = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
     let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
+
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
+    world.push(Box::new(FlipFace::new(Box::new(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0)))));
 
     world.push(Box::new(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0)));
     world.push(Box::new(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0)));
-    world.push(Box::new(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0)));
     world.push(Box::new(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0)));
     world.push(Box::new(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
     world.push(Box::new(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
@@ -484,10 +497,10 @@ fn cornell_box() -> (HittableList, Camera, Color) {
 }
 
 fn cornell_smoke() -> (HittableList, Camera, Color) {
-    let mut world = HittableList::new();
+    let mut world = HittableList::default();
     let background = Color::new(0.0, 0.0, 0.0);
 
-    let red: Lambertian<SolidColorTexture> = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
+    let red = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
     let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));

@@ -22,7 +22,7 @@ impl SolidColorTexture {
 
 impl Texture for SolidColorTexture {
     fn value(&self, _u: f32, _v: f32, _p: Point3) -> Color {
-        return self.color_value
+        self.color_value
     }
 }
 

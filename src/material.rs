@@ -2,31 +2,51 @@ use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::*;
 use crate::texture::*;
+use crate::onb::ONB;
+
+use std::f32::consts::PI;
 
 pub trait Material: Sync {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> { None }
+    fn scatter(&self, _ray: Ray, _hr: &HitRecord) -> Option<(Ray, Color, f32)> { None }
     fn emitted(&self, _u: f32, _v: f32, _p: Point3) -> Color { Color::new_empty() }
-    fn scattering_pdf(&self, ray: Ray, hr: &HitRecord, scattered: Ray) -> f32 { 0.0 }
+    fn scattering_pdf(&self, _ray: Ray, _hr: &HitRecord, _scattered: Ray) -> f32 { 0.0 }
 }
 
 #[derive(Clone)]
-pub struct Lambertian<T: Texture> {
-    pub albedo: T,
+pub struct Lambertian<A: Texture> {
+    pub albedo: A,
 }
 
-impl<T: Texture> Lambertian<T> {
-    pub fn new(albedo: T) -> Self {
+impl<A: Texture> Lambertian<A> {
+    pub fn new(albedo: A) -> Self {
         Self { albedo }
     }
 }
 
-impl<T: Texture> Material for Lambertian<T> {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
+impl<A: Texture> Material for Lambertian<A> {
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color, f32)> {
+        /*
         let scatter_dir = hr.p + hr.normal + Vec3::random_in_unit_sphere();
-
         let scattered = Ray::new(hr.p, scatter_dir - hr.p, ray.time);
+        */
+        let onb = ONB::build_from_w(hr.normal);
+        let scatter_dir = onb.local_vec3(Vec3::random_cosine_dir());
+            
+        let scattered = Ray::new(hr.p, scatter_dir.unit_vector(), ray.time);
         let attenuation = self.albedo.value(hr.u, hr.v, hr.p);
-        Some((scattered, attenuation))
+
+        let pdf = onb.w.dot(scattered.dir) / PI;
+
+        Some((scattered, attenuation, pdf))
+    }
+
+    fn scattering_pdf(&self, _ray: Ray, hr: &HitRecord, scattered: Ray) -> f32 { 
+        let cosine = hr.normal.dot(scattered.dir.unit_vector());
+        if cosine < 0.0 {
+            0.0
+        } else {
+            cosine / PI
+        }
     }
 }
 
@@ -46,7 +66,7 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color, f32)> {
         let reflected = reflect(ray.dir.unit_vector(), hr.normal);
         let scattered = Ray::new(
             hr.p,
@@ -55,8 +75,10 @@ impl Material for Metal {
         );
         let attenuation = self.albedo;
 
+        let pdf = 0.5 / PI;
+
         if scattered.dir.dot(hr.normal) > 0.0 {
-            Some((scattered, attenuation))
+            Some((scattered, attenuation, pdf))
         } else {
             None
         }
@@ -77,11 +99,12 @@ impl Dieletric {
 }
 
 impl Material for Dieletric {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color, f32)> {
         let outward_normal: Vec3;
         let ni_over_nt: f32;
         let cosine: f32;
         let attenuation = Vec3::new(1.0, 1.0, 1.0);
+        let pdf = 0.5 / PI;
 
         if ray.dir.dot(hr.normal) > 0.0 {
             outward_normal = -hr.normal;
@@ -96,13 +119,13 @@ impl Material for Dieletric {
         if let Some(refraction) = refract(ray.dir, outward_normal, ni_over_nt) {
             if rand::random::<f32>() > schlick(cosine, self.ir) {
                 let scattered = Ray::new(hr.p, -refraction, ray.time);
-                return Some((scattered, attenuation));
+                return Some((scattered, attenuation, pdf));
             }
         }
 
         let reflected = reflect(ray.dir, hr.normal);
         let scattered = Ray::new(hr.p, reflected, ray.time);
-        Some((scattered, attenuation))
+        Some((scattered, attenuation, pdf))
     }
 }
 
@@ -128,36 +151,38 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
 }
 
 #[derive(Clone)]
-pub struct DiffuseLight<T: Texture> {
-    emit: T,
+pub struct DiffuseLight<A: Texture> {
+    emit: A,
 }
 
-impl<T: Texture> DiffuseLight<T> {
-    pub fn new(emit: T) -> Self {
+impl<A: Texture> DiffuseLight<A> {
+    pub fn new(emit: A) -> Self {
         Self { emit }
     }
 }
 
-impl<T: Texture> Material for DiffuseLight<T> {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> { None }
+impl<A: Texture> Material for DiffuseLight<A> {
+    fn scatter(&self, _ray: Ray, _hr: &HitRecord) -> Option<(Ray, Color, f32)> { None }
 
     fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { self.emit.value(u, v, p) }
 }
 
-pub struct Isotropic {
-    albedo: Box<dyn Texture>,
+#[derive(Clone)]
+pub struct Isotropic<A: Texture> {
+    albedo: A,
 }
 
-impl Isotropic {
-    pub fn new(albedo: Box<dyn Texture>) -> Self {
+impl<A: Texture> Isotropic<A> {
+    pub fn new(albedo: A) -> Self {
         Self { albedo }
     }
 }
 
-impl Material for Isotropic {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color)> { 
+impl<A: Texture> Material for Isotropic<A> {
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color, f32)> { 
         let scattered = Ray::new(hr.p, Vec3::random_in_unit_sphere(), ray.time);
         let attenuation = self.albedo.value(hr.u, hr.v, hr.p);
-        Some((scattered, attenuation))
+        let pdf = 0.5 / PI;
+        Some((scattered, attenuation, pdf))
     }
 }

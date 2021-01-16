@@ -52,10 +52,6 @@ impl Perlin {
             }
         }
 
-        let uu = u * u * (3.0 - 2.0 * u);
-        let vv = v * v * (3.0 - 2.0 * v);
-        let ww = w * w * (3.0 - 2.0 * w);
-
         let mut accum = 0.0;
         for i in 0..2 {
             for j in 0..2 {
@@ -96,9 +92,7 @@ fn perlin_generate_perm() -> Vec<usize> {
     
     for i in (1..POINT_COUNT).rev() {
         let target = rng.gen_range(0..i);
-        let tmp = p[i];
-        p[i] = p[target];
-        p[target] = tmp;
+        p.swap(i, target)
     }
 
     p

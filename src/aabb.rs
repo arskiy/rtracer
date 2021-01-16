@@ -16,8 +16,8 @@ impl AABB {
 
     pub fn hit(&self, r: Ray, mut t_min: f32, mut t_max: f32) -> bool {
         for i in 0..3 {
-            let t0 = (self.min.at(i) - r.orig.at(i) / r.dir.at(i)).min(self.max.at(i) - r.orig.at(i) / r.dir.at(i));
-            let t1 = (self.min.at(i) - r.orig.at(i) / r.dir.at(i)).max(self.max.at(i) - r.orig.at(i) / r.dir.at(i));
+            let t0 = (self.min[i] - r.orig[i] / r.dir[i]).min(self.max[i] - r.orig[i] / r.dir[i]);
+            let t1 = (self.min[i] - r.orig[i] / r.dir[i]).max(self.max[i] - r.orig[i] / r.dir[i]);
 
             t_min = t0.max(t_min);
             t_max = t1.min(t_max);

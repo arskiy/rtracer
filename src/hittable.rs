@@ -29,23 +29,22 @@ impl HitRecord<'_> {
 pub trait Hittable: Sync {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
+    fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 { 0.0 }
+    fn random(&self, orig: Vec3) -> Vec3 { Vec3::new(1.0, 0.0, 0.0) }
 }
 
+#[derive(Clone, Default)]
 pub struct HittableList {
-    objects: Vec<Box<dyn Hittable>>,
+    pub objects: Vec<Box<Hittable>>,
 }
 
 impl HittableList {
-    pub fn new() -> Self {
-        Self { objects: vec![] }
-    }
-
     pub fn clear(&mut self) {
         self.objects.clear();
     }
 
-    pub fn push(&mut self, object: Box<dyn Hittable>) {
-        self.objects.push(object)
+    pub fn push(&mut self, object: impl Hittable + 'static) {
+        self.objects.push(Box::new(object))
     }
 }
 
@@ -155,8 +154,8 @@ impl RotateY {
                     let tester = Vec3::new(newx, y, newz);
 
                     for c in 0..3 {
-                        min.at_mut(c, min.at(c).min(tester.at(c)));
-                        max.at_mut(c, max.at(c).max(tester.at(c)));
+                        min[c] = min[c].min(tester[c]);
+                        max[c] = max[c].max(tester[c]);
                     }
                 }
             }
@@ -214,7 +213,7 @@ impl Hittable for RotateY {
         }
     }
 
-    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         Some(self.bbox.clone())
     }
 }
@@ -276,5 +275,29 @@ impl Hittable for ConstantMedium {
 
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
         self.boundary.bounding_box(time0, time1)
+    }
+}
+
+pub struct FlipFace {
+    hit: Box<Hittable>,
+}
+
+impl FlipFace {
+    pub fn new(hit: Box<Hittable>) -> Self {
+        Self { hit }
+    }
+}
+
+impl Hittable for FlipFace {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        if let Some(mut rec) = self.hit.hit(r, t_min, t_max) {
+            rec.front_face = !rec.front_face;
+            return Some(rec);
+        }
+        None
+    }
+
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
+        self.bounding_box(time0, time1)
     }
 }

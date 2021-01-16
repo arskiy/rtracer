@@ -8,7 +8,6 @@ pub struct Vec3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    i: usize,
 }
 
 impl ops::Neg for Vec3 {
@@ -19,7 +18,6 @@ impl ops::Neg for Vec3 {
             x: -self.x,
             y: -self.y,
             z: -self.z,
-            i: self.i,
         }
     }
 }
@@ -30,7 +28,6 @@ impl ops::AddAssign for Vec3 {
             x: self.x + other.x,
             y: self.y + other.y,
             z: self.z + other.z,
-            i: self.i,
         };
     }
 }
@@ -59,7 +56,6 @@ impl ops::Add for Vec3 {
             x: self.x + other.x,
             y: self.y + other.y,
             z: self.z + other.z,
-            i: self.i,
         }
     }
 }
@@ -72,7 +68,6 @@ impl ops::Sub for Vec3 {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,
-            i: self.i,
         }
     }
 }
@@ -85,7 +80,6 @@ impl ops::Mul<f32> for Vec3 {
             x: self.x * t,
             y: self.y * t,
             z: self.z * t,
-            i: self.i,
         }
     }
 }
@@ -98,7 +92,6 @@ impl ops::Mul<Vec3> for Vec3 {
             x: self.x * other.x,
             y: self.y * other.y,
             z: self.z * other.z,
-            i: self.i,
         }
     }
 }
@@ -127,18 +120,41 @@ impl ops::Div<Vec3> for f32 {
     }
 }
 
+impl ops::Index<usize> for Vec3 {
+    type Output = f32;
+
+    fn index(&self, i: usize) -> &Self::Output {
+        match i {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("oob access in Index"),
+        }
+    }
+}
+
+impl ops::IndexMut<usize> for Vec3 {
+    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+        match i {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("oob mutable access in IndexMut"),
+        }
+    }
+}
+
 impl Vec3 {
     pub fn new_empty() -> Self {
         Self {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-            i: 0,
         }
     }
 
     pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z, i: 0 }
+        Self { x, y, z }
     }
 
     pub fn random() -> Self {
@@ -146,7 +162,6 @@ impl Vec3 {
             x: rand::random(),
             y: rand::random(),
             z: rand::random(),
-            i: 0,
         }
     }
 
@@ -156,7 +171,6 @@ impl Vec3 {
             x: rng.gen_range(min..max),
             y: rng.gen_range(min..max),
             z: rng.gen_range(min..max),
-            i: 0,
         }
     }
 
@@ -181,7 +195,6 @@ impl Vec3 {
             x: self.y * other.z - self.z * other.y,
             y: self.z * other.x - self.x * other.z,
             z: self.x * other.y - self.y * other.x,
-            i: self.i,
         }
     }
 
@@ -209,25 +222,6 @@ impl Vec3 {
         }
         p
     }
-
-    pub fn at(&self, i: usize) -> f32 {
-        match i {
-            0 => self.x,
-            1 => self.y,
-            2 => self.z,
-            _ => panic!(format!("out of bounds access in vec3: {}", i)),
-        }
-    }
-
-    pub fn at_mut(&mut self, i: usize, v: f32) {
-        match i {
-            0 => self.x = v,
-            1 => self.y = v,
-            2 => self.z = v,
-            _ => panic!(format!("out of bounds write in vec3: {} with value {}", i, v)),
-        }
-    }
-
 
     pub fn calc_color(pixel_color: Color, samples_per_pixel: usize) -> Vec3 {
         let mut ret = pixel_color;
@@ -264,7 +258,30 @@ impl Vec3 {
             }
         }
     }
+
+    pub fn random_in_hemisphere(normal: Self) -> Self {
+        let in_unit = Self::random_in_unit_sphere();
+        if in_unit.dot(normal) > 0.0 {
+            in_unit
+        } else {
+            -in_unit
+        }
+    }
+
+    pub fn random_cosine_dir() -> Self {
+        let r1 = rand::random::<f32>();
+        let r2 = rand::random::<f32>();
+
+        let z = (1.0 - r2).sqrt();
+
+        let phi = 2.0 * std::f32::consts::PI * r1;
+        let x = phi.cos() * r2.sqrt();
+        let y = phi.sin() * r2.sqrt();
+
+        Self { x, y, z }
+    }
 }
+
 
 impl IntoIterator for Vec3 {
     type Item = f32;

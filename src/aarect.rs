@@ -4,12 +4,15 @@ use crate::aabb::AABB;
 use crate::ray::Ray;
 use crate::vec3::*;
 
+use rand::prelude::*;
+
 pub enum Plane {
     XY,
     XZ,
     YZ,
 }
 
+#[derive(Clone)]
 pub struct AARect<M: Material>{
     pub plane: Plane,
     pub material: M,
@@ -35,12 +38,12 @@ impl<M: Sync + Material + 'static> Hittable for AARect<M> {
             Plane::YZ => (0, 1, 2, Vec3::new(1.0, 0.0, 0.0)),
         };
 
-        let t = (self.k - r.orig.at(k_axis)) / r.dir.at(k_axis);
+        let t = (self.k - r.orig[k_axis]) / r.dir[k_axis];
 
         if t < t_min || t > t_max { return None; }
 
-        let a = r.orig.at(a_axis) + t * r.dir.at(a_axis);
-        let b = r.orig.at(b_axis) + t * r.dir.at(b_axis);
+        let a = r.orig[a_axis] + t * r.dir[a_axis];
+        let b = r.orig[b_axis] + t * r.dir[b_axis];
 
         if a < self.a0 || a > self.a1 || b < self.b0 || b > self.b1 {
             return None;
@@ -66,11 +69,37 @@ impl<M: Sync + Material + 'static> Hittable for AARect<M> {
         Some(hr)
     }
 
-    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         Some(AABB::new(Point3::new(self.a0, self.b0, self.k - 0.0001), Point3::new(self.a1, self.b1, self.k + 0.0001)))
+    }
+
+    fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 { 
+        if let Some(hit) = self.hit(&Ray::new(orig, v, 0.0), 0.001, std::f32::INFINITY) {
+            let area = (self.a1 - self.a0) * (self.b1 - self.b0);
+
+            let distance_squared = hit.t.powi(2) * v.length_squared();
+
+            let cosine = v.dot(hit.normal).abs() / v.length();
+
+            return distance_squared / (cosine * area);
+        }
+
+        0.0
+    }
+
+    fn random(&self, orig: Vec3) -> Vec3 { 
+        let mut rng = rand::thread_rng();
+        let random_point = match &self.plane {
+            Plane::XY => Point3::new(rng.gen_range(self.a0..self.a1), rng.gen_range(self.b0..self.b1), self.k),
+            Plane::XZ => Point3::new(rng.gen_range(self.a0..self.a1), self.k, rng.gen_range(self.b0..self.b1)),
+            Plane::YZ => Point3::new(self.k, rng.gen_range(self.a0..self.a1), rng.gen_range(self.b0..self.b1)),
+        };
+
+        random_point - orig
     }
 }
 
+#[derive(Clone)]
 pub struct RectBox {
     box_min: Point3,
     box_max: Point3,
@@ -100,7 +129,7 @@ impl Hittable for RectBox {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         self.sides.hit(r, t_min, t_max)
     }
-    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         Some(AABB::new(self.box_min, self.box_max))
     }
 }

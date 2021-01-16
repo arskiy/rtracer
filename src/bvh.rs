@@ -23,7 +23,7 @@ impl BVH {
                 let b_box = b.bounding_box(time0, time1);
 
                 if let (Some(a_bbox), Some(b_bbox)) = (a_box, b_box) { 
-                    if a_bbox.min.at(axis) - b_bbox.min.at(axis) < 0.0 {
+                    if a_bbox.min[axis] - b_bbox.min[axis] < 0.0 {
                         Ordering::Less
                     } else {
                         Ordering::Greater
