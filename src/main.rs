@@ -137,6 +137,7 @@ fn ray_color(r: Ray, background: Color, world: &HittableList, depth: i32) -> Col
     }
 }
 
+/*
 fn first_scene() -> (HittableList, Camera, Color) {
     let mut world = HittableList::new();
     let background = Color::new(0.7, 0.8, 1.0);
@@ -175,7 +176,6 @@ fn first_scene() -> (HittableList, Camera, Color) {
 
     (world, cam, background)
 }
-/*
 
 fn random_scene_book() -> (HittableList, Camera, Color) {
     let mut rng = rand::thread_rng();
@@ -402,20 +402,20 @@ fn image() -> (HittableList, Camera, Color) {
 */
 
 fn simple_light() -> (HittableList, Camera, Color) {
-    let mut world = HittableList::default();
+    let mut world = HittableList::new();
     let background = Color::new_empty();
 
     let pertext = NoiseTexture::new(4.0);
     world.push(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new(pertext)));
 
     let pertext = NoiseTexture::new(4.0);
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new(pertext))));
+    world.push(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new(pertext)));
 
     let difflight = DiffuseLight::new(SolidColorTexture::new(Color::new(4.0, 4.0, 4.0)));
-    world.push(Box::new(AARect::new(Plane::XY, difflight, 3.0, 5.0, 3.0, 5.0, -2.0)));
+    world.push(AARect::new(Plane::XY, difflight, 3.0, 5.0, 3.0, 5.0, -2.0));
 
     let difflight = DiffuseLight::new(SolidColorTexture::new(Color::new(9.0, 9.0, 9.0)));
-    world.push(Box::new(Sphere::new(Point3::new(3.0, 0.0, 0.0), 1.0, difflight)));
+    world.push(Sphere::new(Point3::new(3.0, 0.0, 0.0), 1.0, difflight));
 
     let lookfrom = Point3::new(26.0, 3.0, 6.0);
     let lookat = Point3::new(0.0, 2.0, 0.0);
@@ -441,7 +441,7 @@ fn simple_light() -> (HittableList, Camera, Color) {
 
 
 fn cornell_box() -> (HittableList, Camera, Color) {
-    let mut world = HittableList::default();
+    let mut world = HittableList::new();
     // let mut lights = HittableList::new();
 
     let background = Color::new(0.0, 0.0, 0.0);
@@ -451,28 +451,28 @@ fn cornell_box() -> (HittableList, Camera, Color) {
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
 
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
-    world.push(Box::new(FlipFace::new(Box::new(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0)))));
+    world.push(FlipFace::new(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0)));
 
-    world.push(Box::new(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0)));
-    world.push(Box::new(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0)));
-    world.push(Box::new(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0)));
-    world.push(Box::new(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
-    world.push(Box::new(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
+    world.push(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0));
+    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0));
+    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
 
     let box1 = RectBox::new(Point3::new(130.0, 0.0, 65.0), Point3::new(295.0, 165.0, 230.0), white.clone());
-    let box1 = RotateY::new(Box::new(box1), -18.0);
-    let box1 = Translate::new(Box::new(box1), Vec3::new(0.0, 0.0, -30.0));
-    world.push(Box::new(box1));
+    let box1 = RotateY::new(box1, -18.0);
+    let box1 = Translate::new(box1, Vec3::new(0.0, 0.0, -30.0));
+    world.push(box1);
 
     let box2 = RectBox::new(Point3::new(265.0, 0.0, 295.0), Point3::new(430.0, 330.0, 460.0), white);
-    let box2 = RotateY::new(Box::new(box2), 15.0);
-    let box2 = Translate::new(Box::new(box2), Vec3::new(-35.0, 0.0, 40.0));
-    world.push(Box::new(box2));
+    let box2 = RotateY::new(box2, 15.0);
+    let box2 = Translate::new(box2, Vec3::new(-35.0, 0.0, 40.0));
+    world.push(box2);
 
     let sphere_mat = NoiseTexture::new(5.0);
     // let sphere = Sphere::new(Point3::new(170.5, 240.0, 117.5), 75.0, Lambertian::new(sphere_mat));
     let sphere = Sphere::new(Point3::new(277.0, 35.0, 470.0), 75.0, Lambertian::new(sphere_mat));
-    world.push(Box::new(sphere));
+    world.push(sphere);
 
     let lookfrom = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);
@@ -497,7 +497,7 @@ fn cornell_box() -> (HittableList, Camera, Color) {
 }
 
 fn cornell_smoke() -> (HittableList, Camera, Color) {
-    let mut world = HittableList::default();
+    let mut world = HittableList::new();
     let background = Color::new(0.0, 0.0, 0.0);
 
     let red = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
@@ -505,27 +505,27 @@ fn cornell_smoke() -> (HittableList, Camera, Color) {
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
 
-    world.push(Box::new(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0)));
-    world.push(Box::new(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0)));
-    world.push(Box::new(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0)));
-    world.push(Box::new(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0)));
-    world.push(Box::new(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
-    world.push(Box::new(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0)));
+    world.push(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0));
+    world.push(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0));
+    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0));
+    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
 
     let box1 = RectBox::new(Point3::new(130.0, 0.0, 65.0), Point3::new(295.0, 165.0, 230.0), white.clone());
-    let box1 = RotateY::new(Box::new(box1), -18.0);
-    let box1 = Translate::new(Box::new(box1), Vec3::new(0.0, 0.0, -30.0));
-    world.push(Box::new(ConstantMedium::new(Box::new(box1), 0.01, Box::new(SolidColorTexture::new(Color::new(0.0, 0.0, 0.0))))));
+    let box1 = RotateY::new(box1, -18.0);
+    let box1 = Translate::new(box1, Vec3::new(0.0, 0.0, -30.0));
+    world.push(ConstantMedium::new(box1, 0.01, SolidColorTexture::new(Color::new(0.0, 0.0, 0.0))));
 
     let box2 = RectBox::new(Point3::new(265.0, 0.0, 295.0), Point3::new(430.0, 330.0, 460.0), white);
-    let box2 = RotateY::new(Box::new(box2), 15.0);
-    let box2 = Translate::new(Box::new(box2), Vec3::new(-35.0, 0.0, 40.0));
-    world.push(Box::new(ConstantMedium::new(Box::new(box2), 0.01, Box::new(SolidColorTexture::new(Color::new(1.0, 1.0, 1.0))))));
+    let box2 = RotateY::new(box2, 15.0);
+    let box2 = Translate::new(box2, Vec3::new(-35.0, 0.0, 40.0));
+    world.push(ConstantMedium::new(box2, 0.01, SolidColorTexture::new(Color::new(1.0, 1.0, 1.0))));
 
     let sphere_mat = NoiseTexture::new(5.0);
     // let sphere = Sphere::new(Point3::new(170.5, 240.0, 117.5), 75.0, Lambertian::new(sphere_mat));
     let sph = Sphere::new(Point3::new(277.0, 180.0, 350.0), 75.0, Lambertian::new(sphere_mat));
-    world.push(Box::new(sph));
+    world.push(sph);
 
     let lookfrom = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);

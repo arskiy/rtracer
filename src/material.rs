@@ -25,10 +25,6 @@ impl<A: Texture> Lambertian<A> {
 
 impl<A: Texture> Material for Lambertian<A> {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color, f32)> {
-        /*
-        let scatter_dir = hr.p + hr.normal + Vec3::random_in_unit_sphere();
-        let scattered = Ray::new(hr.p, scatter_dir - hr.p, ray.time);
-        */
         let onb = ONB::build_from_w(hr.normal);
         let scatter_dir = onb.local_vec3(Vec3::random_cosine_dir());
             
@@ -167,6 +163,7 @@ impl<A: Texture> Material for DiffuseLight<A> {
     fn emitted(&self, u: f32, v: f32, p: Point3) -> Color { self.emit.value(u, v, p) }
 }
 
+/*
 #[derive(Clone)]
 pub struct Isotropic<A: Texture> {
     albedo: A,
@@ -179,6 +176,26 @@ impl<A: Texture> Isotropic<A> {
 }
 
 impl<A: Texture> Material for Isotropic<A> {
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color, f32)> { 
+        let scattered = Ray::new(hr.p, Vec3::random_in_unit_sphere(), ray.time);
+        let attenuation = self.albedo.value(hr.u, hr.v, hr.p);
+        let pdf = 0.5 / PI;
+        Some((scattered, attenuation, pdf))
+    }
+}
+*/
+
+pub struct Isotropic {
+    albedo: Box<dyn Texture>,
+}
+
+impl Isotropic {
+    pub fn new(albedo: Box<dyn Texture>) -> Self {
+        Self { albedo }
+    }
+}
+
+impl Material for Isotropic {
     fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color, f32)> { 
         let scattered = Ray::new(hr.p, Vec3::random_in_unit_sphere(), ray.time);
         let attenuation = self.albedo.value(hr.u, hr.v, hr.p);

@@ -6,13 +6,13 @@ use crate::vec3::*;
 
 use rand::prelude::*;
 
+#[derive(Clone, Debug)]
 pub enum Plane {
     XY,
     XZ,
     YZ,
 }
 
-#[derive(Clone)]
 pub struct AARect<M: Material>{
     pub plane: Plane,
     pub material: M,
@@ -99,7 +99,6 @@ impl<M: Sync + Material + 'static> Hittable for AARect<M> {
     }
 }
 
-#[derive(Clone)]
 pub struct RectBox {
     box_min: Point3,
     box_max: Point3,
@@ -111,12 +110,12 @@ impl RectBox {
         let box_min = p0;
         let box_max = p1;
         let mut sides = HittableList::new();
-        sides.push(Box::new(AARect::new(Plane::XY, material.clone(), p0.x, p1.x, p0.y, p1.y, p1.z)));
-        sides.push(Box::new(AARect::new(Plane::XY, material.clone(), p0.x, p1.x, p0.y, p1.y, p0.z)));
-        sides.push(Box::new(AARect::new(Plane::XZ, material.clone(), p0.x, p1.x, p0.z, p1.z, p1.y)));
-        sides.push(Box::new(AARect::new(Plane::XZ, material.clone(), p0.x, p1.x, p0.z, p1.z, p0.y)));
-        sides.push(Box::new(AARect::new(Plane::YZ, material.clone(), p0.y, p1.y, p0.z, p1.z, p1.x)));
-        sides.push(Box::new(AARect::new(Plane::YZ, material, p0.y, p1.y, p0.z, p1.z, p0.x)));
+        sides.push(AARect::new(Plane::XY, material.clone(), p0.x, p1.x, p0.y, p1.y, p1.z));
+        sides.push(AARect::new(Plane::XY, material.clone(), p0.x, p1.x, p0.y, p1.y, p0.z));
+        sides.push(AARect::new(Plane::XZ, material.clone(), p0.x, p1.x, p0.z, p1.z, p1.y));
+        sides.push(AARect::new(Plane::XZ, material.clone(), p0.x, p1.x, p0.z, p1.z, p0.y));
+        sides.push(AARect::new(Plane::YZ, material.clone(), p0.y, p1.y, p0.z, p1.z, p1.x));
+        sides.push(AARect::new(Plane::YZ, material, p0.y, p1.y, p0.z, p1.z, p0.x));
         Self {
             box_min,
             box_max,

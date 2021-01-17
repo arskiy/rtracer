@@ -29,16 +29,19 @@ impl HitRecord<'_> {
 pub trait Hittable: Sync {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
-    fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 { 0.0 }
-    fn random(&self, orig: Vec3) -> Vec3 { Vec3::new(1.0, 0.0, 0.0) }
+    fn pdf_value(&self, _orig: Point3, _v: Vec3) -> f32 { 0.0 }
+    fn random(&self, _orig: Vec3) -> Vec3 { Vec3::new(1.0, 0.0, 0.0) }
 }
 
-#[derive(Clone, Default)]
 pub struct HittableList {
-    pub objects: Vec<Box<Hittable>>,
+    pub objects: Vec<Box<dyn Hittable>>,
 }
 
 impl HittableList {
+    pub fn new() -> Self {
+        Self { objects: vec!() }
+    }
+
     pub fn clear(&mut self) {
         self.objects.clear();
     }
@@ -95,8 +98,8 @@ pub struct Translate {
 }
 
 impl Translate {
-    pub fn new(hit: Box<dyn Hittable>, offset: Vec3) -> Self {
-        Self { hit, offset }
+    pub fn new(hit: impl Hittable + 'static, offset: Vec3) -> Self {
+        Self { hit: Box::new(hit), offset }
     }
 }
 
@@ -131,7 +134,7 @@ pub struct RotateY {
 }
 
 impl RotateY {
-    pub fn new(hit: Box<dyn Hittable>, angle: f32) -> Self {
+    pub fn new(hit: impl Hittable + 'static, angle: f32) -> Self {
         let radians = angle.to_radians();
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
@@ -164,7 +167,7 @@ impl RotateY {
         let bbox = AABB::new(min, max);
 
         Self {
-            hit,
+            hit: Box::new(hit),
             sin_theta,
             cos_theta,
             bbox
@@ -225,8 +228,8 @@ pub struct ConstantMedium {
 }
 
 impl ConstantMedium {
-    pub fn new(boundary: Box<dyn Hittable>, d: f32, t: Box<dyn Texture>) -> Self {
-        Self { boundary, phase_function: Box::new(Isotropic::new(t)), neg_inv_density: (-1.0 / d) }
+    pub fn new(b: impl Hittable + 'static, d: f32, t: impl Texture + 'static) -> Self {
+        Self { boundary: Box::new(b), phase_function: Box::new(Isotropic::new(Box::new(t))), neg_inv_density: (-1.0 / d) }
     }
 }
 
@@ -279,12 +282,12 @@ impl Hittable for ConstantMedium {
 }
 
 pub struct FlipFace {
-    hit: Box<Hittable>,
+    hit: Box<dyn Hittable>,
 }
 
 impl FlipFace {
-    pub fn new(hit: Box<Hittable>) -> Self {
-        Self { hit }
+    pub fn new(hit: impl Hittable + 'static) -> Self {
+        Self { hit: Box::new(hit) }
     }
 }
 
@@ -298,6 +301,6 @@ impl Hittable for FlipFace {
     }
 
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
-        self.bounding_box(time0, time1)
+        self.hit.bounding_box(time0, time1)
     }
 }
