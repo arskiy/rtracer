@@ -1,6 +1,5 @@
 - sem espectral https://ceciliavision.github.io/graphics/a6/ pq é ineficiente (>3x mais sampling)
 
-- importance sampling
 - metropolis light transport
 
 - gltf

@@ -3,12 +3,13 @@ use crate::ray::Ray;
 use crate::vec3::*;
 use crate::texture::*;
 use crate::onb::ONB;
+use crate::pdf::*;
 
 use std::f32::consts::PI;
 
 pub trait Material: Sync {
-    fn scatter(&self, _ray: Ray, _hr: &HitRecord) -> Option<(Ray, Color, f32)> { None }
-    fn emitted(&self, _u: f32, _v: f32, _p: Point3) -> Color { Color::new_empty() }
+    fn scatter(&self, _ray: Ray, _hr: &HitRecord) -> Option<ScatterRecord> { None }
+    fn emitted(&self, _ray: Ray, _hr: &HitRecord, _u: f32, _v: f32, _p: Point3) -> Color { Color::new_empty() }
     fn scattering_pdf(&self, _ray: Ray, _hr: &HitRecord, _scattered: Ray) -> f32 { 0.0 }
 }
 
@@ -23,26 +24,23 @@ impl<A: Texture> Lambertian<A> {
     }
 }
 
+pub enum ReflectionRecord<'a> {
+    Specular { specular_ray: Ray, attenuation: Vec3 },
+    Scatter { pdf: PDF<'a>, attenuation: Vec3 }
+}
+
 impl<A: Texture> Material for Lambertian<A> {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<(Ray, Color, f32)> {
-        let onb = ONB::build_from_w(hr.normal);
-        let scatter_dir = onb.local_vec3(Vec3::random_cosine_dir());
-            
-        let scattered = Ray::new(hr.p, scatter_dir.unit_vector(), ray.time);
-        let attenuation = self.albedo.value(hr.u, hr.v, hr.p);
-
-        let pdf = onb.w.dot(scattered.dir) / PI;
-
-        Some((scattered, attenuation, pdf))
+    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<ReflectionRecord> {
+        Some(ReflectionRecord::Scatter {
+            pdf: CosinePDF::new(hr.normal),
+            attenuation: self.albedo.value(hr.u, hr.v, hr.p),
+        })
     }
 
     fn scattering_pdf(&self, _ray: Ray, hr: &HitRecord, scattered: Ray) -> f32 { 
-        let cosine = hr.normal.dot(scattered.dir.unit_vector());
-        if cosine < 0.0 {
-            0.0
-        } else {
-            cosine / PI
-        }
+        // if cosine < 0, return 0
+        let cosine = hr.normal.dot(scattered.dir.unit_vector()).max(0.0);
+        cosine / PI
     }
 }
 

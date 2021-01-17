@@ -34,7 +34,7 @@ use rayon::prelude::*;
 const ASPECT_RATIO: f32 = 1.0;
 const NX: usize = 500;
 const NY: usize = (NX as f32 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 200;
+const SAMPLES_PER_PIXEL: usize = 10;
 const MAX_DEPTH: i32 = 50;
 
 // assumes constructor will never panic. we're safe using just Box::new()
@@ -67,16 +67,6 @@ fn main() {
         for x in 0..NX {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
 
-            /*
-            for _ in 0..SAMPLES_PER_PIXEL {
-                let u = (x as f32 + rand::random::<f32>()) / (NX - 1) as f32;
-                let v = (y as f32 + rand::random::<f32>()) / (NY - 1) as f32;
-
-                let r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, background, &world, MAX_DEPTH);
-            }
-            */
-
             for i in 0..SAMPLES_PER_PIXEL {
                 let u = (x as f32 + hx[i]) / (NX - 1) as f32;
                 let v = (y as f32 + hy[i]) / (NY - 1) as f32;
@@ -84,6 +74,15 @@ fn main() {
                 let r = cam.get_ray(u, v);
                 pixel_color += ray_color(r, background, &world, MAX_DEPTH);
             }
+
+            /*
+            for _ in 0..SAMPLES_PER_PIXEL {
+                let u = (x as f32 + rand::random::<f32>()) / (NX - 1) as f32;
+                let v = (y as f32 + rand::random::<f32>()) / (NY - 1) as f32;
+                let r = cam.get_ray(u, v);
+                pixel_color += ray_color(r, background, &world, MAX_DEPTH);
+            }
+            */
 
             image.lock().unwrap()[y as usize][x as usize] =
                 Vec3::calc_color(pixel_color, SAMPLES_PER_PIXEL);
@@ -108,7 +107,7 @@ fn ray_color(r: Ray, background: Color, world: &HittableList, depth: i32) -> Col
     }
 
     let lights = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
-    let lights = Box::new(AARect::new(Plane::XZ, lights, 177.0, 392.0, 163.0, 393.0, 554.0));
+    let lights = AARect::new(Plane::XZ, lights, 177.0, 392.0, 163.0, 393.0, 554.0);
 
     match world.hit(&r, 0.001, std::f32::INFINITY) {
         Some(hit) => {
@@ -116,13 +115,12 @@ fn ray_color(r: Ray, background: Color, world: &HittableList, depth: i32) -> Col
 
             if let Some((_scattered, attenuation, _pdf)) = hit.material.scatter(r.clone(), &hit) {
                 let light_pdf = HittablePDF::new(hit.p, lights);
+                let cosine = CosinePDF::new(hit.normal);
+                let mixture = MixturePDF::new(light_pdf, cosine);
 
-                let scattered = Ray::new(hit.p, light_pdf.generate(), r.time);
+                let scattered = Ray::new(hit.p, mixture.generate(), r.time);
 
-                // let p = CosinePDF::new(hit.normal);
-                // let scattered = Ray::new(hit.p, p.generate(), r.time);
-
-                let pdf_val = light_pdf.value(scattered.dir);
+                let pdf_val = mixture.value(scattered.dir);
 
                 return emitted + attenuation * 
                     hit.material.scattering_pdf(r, &hit, scattered.clone())
@@ -451,7 +449,7 @@ fn cornell_box() -> (HittableList, Camera, Color) {
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
 
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
-    world.push(FlipFace::new(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0)));
+    world.push(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0));
 
     world.push(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0));
     world.push(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0));
