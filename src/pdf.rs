@@ -63,8 +63,8 @@ pub struct MixturePDF {
 }
 
 impl MixturePDF {
-    pub fn new(p0: impl PDF + 'static, p1: impl PDF + 'static) -> Self {
-        Self { p0: Box::new(p0), p1: Box::new(p1) }
+    pub fn new(p0: impl PDF + 'static, p1: Box<dyn PDF>) -> Self {
+        Self { p0: Box::new(p0), p1 }
     }
 }
 
