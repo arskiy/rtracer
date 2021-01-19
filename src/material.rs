@@ -29,7 +29,7 @@ pub enum ReflectionRecord {
 }
 
 impl<A: Texture> Material for Lambertian<A> {
-    fn scatter(&self, ray: Ray, hr: &HitRecord) -> Option<ReflectionRecord> {
+    fn scatter(&self, _ray: Ray, hr: &HitRecord) -> Option<ReflectionRecord> {
         Some(ReflectionRecord::Scatter {
             pdf: Box::new(CosinePDF::new(hr.normal)),
             attenuation: self.albedo.value(hr.u, hr.v, hr.p),

@@ -6,11 +6,6 @@ use crate::hittable::*;
 use crate::aarect::*;
 use crate::sphere::*;
 
-pub const ASPECT_RATIO: f32 = 1.0;
-pub const NX: usize = 500;
-pub const NY: usize = (NX as f32 / ASPECT_RATIO) as usize;
-pub const SAMPLES_PER_PIXEL: usize = 1000;
-
 /*
 fn first_scene() -> (HittableList, Camera, Color) {
     let mut world = HittableList::new();
@@ -273,7 +268,6 @@ fn image() -> (HittableList, Camera, Color) {
     (world, cam, background)
 }
 
-*/
 
 fn simple_light() -> (HittableList, Camera, Color) {
     let mut world = HittableList::new();
@@ -294,64 +288,6 @@ fn simple_light() -> (HittableList, Camera, Color) {
     let lookfrom = Point3::new(26.0, 3.0, 6.0);
     let lookat = Point3::new(0.0, 2.0, 0.0);
     let fov = 20.0;
-    let vup = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = 10.0;
-    let aperture = 0.0;
-
-    let cam = Camera::new(
-        lookfrom,
-        lookat,
-        vup,
-        fov,
-        ASPECT_RATIO,
-        aperture,
-        dist_to_focus,
-        0.0,
-        1.0,
-    );
-
-    (world, cam, background)
-}
-
-
-pub fn cornell_box() -> (HittableList, Camera, Color) {
-    let mut world = HittableList::new();
-    // let mut lights = HittableList::new();
-
-    let background = Color::new(0.0, 0.0, 0.0);
-
-    let red: Lambertian<SolidColorTexture> = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
-    let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
-    let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
-    let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
-
-    let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
-    world.push(AARect::new(Plane::XZ, light, 177.0, 392.0, 163.0, 393.0, 554.0));
-
-    world.push(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0));
-    world.push(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0));
-    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0));
-    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
-    world.push(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
-
-    let box1 = RectBox::new(Point3::new(130.0, 0.0, 65.0), Point3::new(295.0, 165.0, 230.0), white.clone());
-    let box1 = RotateY::new(box1, -18.0);
-    let box1 = Translate::new(box1, Vec3::new(0.0, 0.0, -30.0));
-    world.push(box1);
-
-    let box2 = RectBox::new(Point3::new(265.0, 0.0, 295.0), Point3::new(430.0, 330.0, 460.0), aluminum);
-    let box2 = RotateY::new(box2, 15.0);
-    let box2 = Translate::new(box2, Vec3::new(-35.0, 0.0, 40.0));
-    world.push(box2);
-
-    let sphere_mat = NoiseTexture::new(5.0);
-    // let sphere = Sphere::new(Point3::new(170.5, 240.0, 117.5), 75.0, Lambertian::new(sphere_mat));
-    let sphere = Sphere::new(Point3::new(277.0, 35.0, 470.0), 75.0, Lambertian::new(sphere_mat));
-    world.push(sphere);
-
-    let lookfrom = Point3::new(278.0, 278.0, -800.0);
-    let lookat = Point3::new(278.0, 278.0, 0.0);
-    let fov = 40.0;
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
     let aperture = 0.0;
@@ -422,4 +358,65 @@ fn cornell_smoke() -> (HittableList, Camera, Color) {
     );
 
     (world, cam, background)
+}
+*/
+
+pub fn cornell_box(aspect_ratio: f32) -> (HittableList, Camera, Color, HittableList) {
+    let mut world = HittableList::new();
+    let mut lights = HittableList::new();
+
+    let background = Color::new(0.0, 0.0, 0.0);
+
+    let red: Lambertian<SolidColorTexture> = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
+    let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
+    let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
+
+    let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
+    let light_ceiling = AARect::new(Plane::XZ, light.clone(), 177.0, 392.0, 163.0, 393.0, 554.0);
+    world.push(light_ceiling);
+    let light_ceiling = AARect::new(Plane::XZ, light.clone(), 177.0, 392.0, 163.0, 393.0, 554.0);
+    lights.push(light_ceiling);
+
+    world.push(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::YZ, red, 0.0, 555.0, 0.0, 555.0, 0.0));
+    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0));
+    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
+
+    let box1 = RectBox::new(Point3::new(130.0, 0.0, 65.0), Point3::new(295.0, 165.0, 230.0), white.clone());
+    let box1 = RotateY::new(box1, -18.0);
+    let box1 = Translate::new(box1, Vec3::new(0.0, 0.0, -30.0));
+    world.push(box1);
+
+    let box2 = RectBox::new(Point3::new(265.0, 0.0, 295.0), Point3::new(430.0, 330.0, 460.0), aluminum);
+    let box2 = RotateY::new(box2, 15.0);
+    let box2 = Translate::new(box2, Vec3::new(-35.0, 0.0, 40.0));
+    world.push(box2);
+
+    let sphere_mat = NoiseTexture::new(5.0);
+    // let sphere = Sphere::new(Point3::new(170.5, 240.0, 117.5), 75.0, Lambertian::new(sphere_mat));
+    let sphere = Sphere::new(Point3::new(277.0, 35.0, 470.0), 75.0, Lambertian::new(sphere_mat));
+    world.push(sphere);
+
+    let lookfrom = Point3::new(278.0, 278.0, -800.0);
+    let lookat = Point3::new(278.0, 278.0, 0.0);
+    let fov = 40.0;
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.0;
+
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        fov,
+        aspect_ratio,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
+
+    (world, cam, background, lights)
 }

@@ -39,8 +39,8 @@ pub struct HittablePDF {
 }
 
 impl HittablePDF {
-    pub fn new(orig: Point3, hit: impl Hittable + 'static) -> Self {
-        Self { orig, hit: Box::new(hit) }
+    pub fn new(orig: Point3, hit: Box<dyn Hittable>) -> Self {
+        Self { orig, hit }
     }
 }
 

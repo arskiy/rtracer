@@ -6,6 +6,7 @@
 - animações
 
 - pego chunks por nxn pixels e comparo as averages com uma noisy ou whitted, e se >x% nao renderizar aquela parte e usar a antiga pra otimizar animações
+- fazer a GUI em html localhost e o programa só abrir o navegador ou electron????
 - upar a imagem em um localhost render (talvez com whitted) para tempo real
 - cena programavel com lua
 - skyboxes

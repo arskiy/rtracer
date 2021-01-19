@@ -46,6 +46,14 @@ impl HittableList {
         self.objects.clear();
     }
 
+    pub fn len(&self) -> usize {
+        self.objects.len()
+    }
+
+    pub fn first(&self) -> Option<&Box<dyn Hittable>> {
+        self.objects.first()
+    }
+
     pub fn push(&mut self, object: impl Hittable + 'static) {
         self.objects.push(Box::new(object))
     }
