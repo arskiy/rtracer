@@ -27,12 +27,10 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 
-use rand::seq::SliceRandom;
-
 const ASPECT_RATIO: f32 = 1.0;
 const NX: usize = 500;
 const NY: usize = (NX as f32 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 1000;
+const SAMPLES_PER_PIXEL: usize = 100;
 const MAX_DEPTH: i32 = 50;
 
 // assumes constructor will never panic. we're safe using just Box::new()
@@ -97,9 +95,9 @@ fn ray_color(ray: Ray, background: Color, world: &HittableList, lights: &Hittabl
 
     match world.hit(&ray, 0.001, std::f32::INFINITY) {
         Some(hit) => {
-            let emitted = hit.material.emitted(ray.clone(), &hit);
+            let emitted = hit.material.emitted(&ray, &hit);
 
-            if let Some(reflection) = hit.material.scatter(ray.clone(), &hit) {
+            if let Some(reflection) = hit.material.scatter(&ray, &hit) {
                 match reflection {
                     ReflectionRecord::Specular { specular_ray, attenuation } => {
                         return attenuation *
@@ -107,26 +105,14 @@ fn ray_color(ray: Ray, background: Color, world: &HittableList, lights: &Hittabl
                     }
 
                     ReflectionRecord::Scatter { pdf: reflection_cosine_pdf, attenuation } => {
-                        let light_obj_pdf = if lights.len() == 1 {
-                            lights.first()
-                        } else {
-                            let mut rng = rand::thread_rng();
-                            lights.objects.choose(&mut rng)
-                        };
-                        
-                        let pdf: Box<dyn PDF> = if let Some(&hittable) = light_obj_pdf {
-                            let light_pdf = HittablePDF::new(hit.p, hittable);
-                            Box::new(MixturePDF::new(light_pdf, reflection_cosine_pdf))
-                        } else {
-                            // no lights, so no importance sampling
-                            Box::new(CosinePDF::new(hit.normal))
-                        };
-                        
-                        let scattered = Ray::new(hit.p, pdf.generate(), ray.time);
-                        let pdf_val = pdf.value(scattered.dir);
+                        let light_pdf = HittablePDF::new(hit.p, lights);
+                        let mixture_pdf = MixturePDF::new(&light_pdf, &*reflection_cosine_pdf);
+
+                        let scattered = Ray::new(hit.p, mixture_pdf.generate(), ray.time);
+                        let pdf_val = mixture_pdf.value(scattered.dir);
 
                         return emitted + attenuation
-                            * hit.material.scattering_pdf(ray, &hit, scattered.clone())
+                            * hit.material.scattering_pdf(&ray, &hit, &scattered)
                             * ray_color(scattered, background, world, &lights, depth - 1) / pdf_val
                     }
                 }

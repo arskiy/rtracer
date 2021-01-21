@@ -13,6 +13,7 @@ pub enum Plane {
     YZ,
 }
 
+#[derive(Clone)]
 pub struct AARect<M: Material>{
     pub plane: Plane,
     pub material: M,
@@ -30,7 +31,7 @@ impl<M: Material> AARect<M> {
     }
 }
 
-impl<M: Sync + Material + 'static> Hittable for AARect<M> { 
+impl<M: Sync + Send + Material + 'static> Hittable for AARect<M> { 
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let (k_axis, a_axis, b_axis, outward_normal) = match &self.plane {
             Plane::XY => (2, 0, 1, Vec3::new(0.0, 0.0, 1.0)),
@@ -106,7 +107,7 @@ pub struct RectBox {
 }
 
 impl RectBox {
-    pub fn new<M: Material + Clone + 'static>(p0: Point3, p1: Point3, material: M) -> Self {
+    pub fn new<M: Material + Clone + Send + 'static>(p0: Point3, p1: Point3, material: M) -> Self {
         let box_min = p0;
         let box_max = p1;
         let mut sides = HittableList::new();

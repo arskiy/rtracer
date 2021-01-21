@@ -33,18 +33,18 @@ impl PDF for CosinePDF {
 // ---------------------------------------------------------------
 
 // Probability Density Function for Hittable objects, mostly used for light sampling.
-pub struct HittablePDF {
+pub struct HittablePDF<'a> {
     orig: Point3,
-    hit: Box<dyn Hittable>,
+    hit: &'a dyn Hittable,
 }
 
-impl HittablePDF {
-    pub fn new(orig: Point3, hit: Box<dyn Hittable>) -> Self {
+impl<'a> HittablePDF<'a> {
+    pub fn new(orig: Point3, hit: &'a dyn Hittable) -> Self {
         Self { orig, hit }
     }
 }
 
-impl PDF for HittablePDF {
+impl PDF for HittablePDF<'_> {
     fn value(&self, dir: Vec3) -> f32 {
         self.hit.pdf_value(self.orig, dir)
     }
@@ -57,18 +57,18 @@ impl PDF for HittablePDF {
 // ---------------------------------------------------------------
 
 // Mixture density of cosine and light sampling. 50/50 chance to pdfLight or pdfReflection.
-pub struct MixturePDF {
-    p0: Box<dyn PDF>,
-    p1: Box<dyn PDF>,
+pub struct MixturePDF<'a> {
+    p0: &'a dyn PDF,
+    p1: &'a dyn PDF,
 }
 
-impl MixturePDF {
-    pub fn new(p0: impl PDF + 'static, p1: Box<dyn PDF>) -> Self {
-        Self { p0: Box::new(p0), p1 }
+impl<'a> MixturePDF<'a> {
+    pub fn new(p0: &'a dyn PDF, p1: &'a dyn PDF) -> Self {
+        Self { p0, p1 }
     }
 }
 
-impl PDF for MixturePDF {
+impl PDF for MixturePDF<'_> {
     fn value(&self, dir: Vec3) -> f32 {
         0.5 * self.p0.value(dir) + 0.5 * self.p1.value(dir)
     }
@@ -80,4 +80,17 @@ impl PDF for MixturePDF {
             self.p1.generate()
         }
     }
+}
+
+pub fn random_to_sphere(radius: f32, distance_squared: f32) -> Vec3 {
+    let r1 = rand::random::<f32>();
+    let r2 = rand::random::<f32>();
+
+    let z = 1.0 + r2 * ((1.0 - radius.powi(2) / distance_squared).sqrt() - 1.0);
+    let phi = 2.0 * consts::PI * r1;
+
+    let x = phi.cos() * (1.0 - z.powi(2)).sqrt();
+    let y = phi.cos() * (1.0 - z.powi(2)).sqrt();
+
+    Vec3::new(x, y, z)
 }

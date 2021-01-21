@@ -3,7 +3,11 @@ use crate::ray::Ray;
 use crate::vec3::{Point3, Vec3};
 use crate::aabb::AABB;
 use crate::texture::Texture;
+
+use std::sync::Arc;
 use std::f32;
+
+use rand::prelude::*;
 
 pub struct HitRecord<'a> {
     pub p: Point3,
@@ -26,15 +30,16 @@ impl HitRecord<'_> {
     }
 }
 
-pub trait Hittable: Sync {
+pub trait Hittable: Sync + Send {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
     fn pdf_value(&self, _orig: Point3, _v: Vec3) -> f32 { 0.0 }
     fn random(&self, _orig: Vec3) -> Vec3 { Vec3::new(1.0, 0.0, 0.0) }
 }
 
+#[derive(Clone)]
 pub struct HittableList {
-    pub objects: Vec<Box<dyn Hittable>>,
+    pub objects: Vec<Arc<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -50,12 +55,12 @@ impl HittableList {
         self.objects.len()
     }
 
-    pub fn first(&self) -> Option<&Box<dyn Hittable>> {
+    pub fn first(&self) -> Option<&Arc<dyn Hittable>> {
         self.objects.first()
     }
 
     pub fn push(&mut self, object: impl Hittable + 'static) {
-        self.objects.push(Box::new(object))
+        self.objects.push(Arc::new(object))
     }
 }
 
@@ -97,6 +102,22 @@ impl Hittable for HittableList {
         }
 
         Some(output_box)
+    }
+
+    fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 {
+        let weight = 1.0 / self.objects.len() as f32;
+        let mut sum = 0.0;
+
+        for obj in &self.objects {
+            sum += weight * obj.pdf_value(orig, v);
+        }
+
+        sum
+    }
+
+    fn random(&self, orig: Vec3) -> Vec3 {
+        let mut rng = rand::thread_rng();
+        self.objects[rng.gen_range(0..self.objects.len())].random(orig)
     }
 }
 
@@ -230,14 +251,14 @@ impl Hittable for RotateY {
 }
 
 pub struct ConstantMedium {
-    boundary: Box<dyn Hittable>,
-    phase_function: Box<dyn Material>,
+    boundary: Arc<dyn Hittable>,
+    phase_function: Arc<dyn Material>,
     neg_inv_density: f32,
 }
 
 impl ConstantMedium {
     pub fn new(b: impl Hittable + 'static, d: f32, t: impl Texture + 'static) -> Self {
-        Self { boundary: Box::new(b), phase_function: Box::new(Isotropic::new(Box::new(t))), neg_inv_density: (-1.0 / d) }
+        Self { boundary: Arc::new(b), phase_function: Arc::new(Isotropic::new(Box::new(t))), neg_inv_density: (-1.0 / d) }
     }
 }
 

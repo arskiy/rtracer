@@ -3,9 +3,12 @@ use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::*;
 use crate::aabb::AABB;
+use crate::onb::ONB;
+use crate::pdf;
 
 use std::f32::consts::{FRAC_PI_2, PI};
 
+#[derive(Clone)]
 pub struct Sphere<M: Material> {
     pub center: Point3,
     pub radius: f32,
@@ -22,7 +25,7 @@ impl<M: Material> Sphere<M> {
     }
 }
 
-impl<M: Sync + Material> Hittable for Sphere<M> {
+impl<M: Sync + Send + Material> Hittable for Sphere<M> {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let oc = r.orig - self.center;
         let a = r.dir.length_squared();
@@ -69,8 +72,29 @@ impl<M: Sync + Material> Hittable for Sphere<M> {
             self.center + Vec3::new(self.radius, self.radius, self.radius),
         ))
     }
+
+    fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 {
+        if let Some(_) = self.hit(&Ray::new(orig, v, 0.0), 0.001, std::f32::INFINITY) {
+            let cos_theta_max = (1.0 - self.radius.powi(2) 
+                                 / (self.center - orig).length_squared()).sqrt();
+            let solid_angle = 2.0 * std::f32::consts::PI * (1.0 - cos_theta_max);
+            
+            1.0 / solid_angle
+
+        } else {
+            0.0
+        }
+    }
+
+    fn random(&self, orig: Vec3) -> Vec3 { 
+        let dir = self.center - orig;
+        let distance_squared = dir.length_squared();
+        let onb = ONB::build_from_w(dir);
+        onb.local_vec3(pdf::random_to_sphere(self.radius, distance_squared))
+    }
 }
 
+#[derive(Clone)]
 pub struct MovingSphere<M: Material> {
     pub center0: Point3,
     pub center1: Point3,
@@ -106,7 +130,7 @@ impl<M: Material> MovingSphere<M> {
     }
 }
 
-impl<M: Sync + Material> Hittable for MovingSphere<M> {
+impl<M: Sync + Send + Material> Hittable for MovingSphere<M> {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let oc = r.orig - self.calc_time(r.time);
         let a = r.dir.length_squared();
@@ -159,6 +183,26 @@ impl<M: Sync + Material> Hittable for MovingSphere<M> {
         );
 
         Some(AABB::surrounding_box(box0, box1))
+    }
+
+    fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 {
+        if let Some(_) = self.hit(&Ray::new(orig, v, 0.0), 0.001, std::f32::INFINITY) {
+            let cos_theta_max = (1.0 - self.radius.powi(2) 
+                                 / (self.center0 - orig).length_squared()).sqrt();
+            let solid_angle = 2.0 * std::f32::consts::PI * (1.0 - cos_theta_max);
+            
+            1.0 / solid_angle
+
+        } else {
+            0.0
+        }
+    }
+
+    fn random(&self, orig: Vec3) -> Vec3 { 
+        let dir = self.center0 - orig;
+        let distance_squared = dir.length_squared();
+        let onb = ONB::build_from_w(dir);
+        onb.local_vec3(pdf::random_to_sphere(self.radius, distance_squared))
     }
 }
 

@@ -225,6 +225,10 @@ impl Vec3 {
 
     pub fn calc_color(pixel_color: Color, samples_per_pixel: usize) -> Vec3 {
         let mut ret = pixel_color;
+
+        if ret.x.is_nan() { ret.x = 0.0; }
+        if ret.y.is_nan() { ret.y = 0.0; }
+        if ret.z.is_nan() { ret.z = 0.0; }
     
         let scale = 1.0 / samples_per_pixel as f32;
         ret.x = (scale * ret.x).sqrt();

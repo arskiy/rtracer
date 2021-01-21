@@ -268,45 +268,6 @@ fn image() -> (HittableList, Camera, Color) {
     (world, cam, background)
 }
 
-
-fn simple_light() -> (HittableList, Camera, Color) {
-    let mut world = HittableList::new();
-    let background = Color::new_empty();
-
-    let pertext = NoiseTexture::new(4.0);
-    world.push(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new(pertext)));
-
-    let pertext = NoiseTexture::new(4.0);
-    world.push(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new(pertext)));
-
-    let difflight = DiffuseLight::new(SolidColorTexture::new(Color::new(4.0, 4.0, 4.0)));
-    world.push(AARect::new(Plane::XY, difflight, 3.0, 5.0, 3.0, 5.0, -2.0));
-
-    let difflight = DiffuseLight::new(SolidColorTexture::new(Color::new(9.0, 9.0, 9.0)));
-    world.push(Sphere::new(Point3::new(3.0, 0.0, 0.0), 1.0, difflight));
-
-    let lookfrom = Point3::new(26.0, 3.0, 6.0);
-    let lookat = Point3::new(0.0, 2.0, 0.0);
-    let fov = 20.0;
-    let vup = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = 10.0;
-    let aperture = 0.0;
-
-    let cam = Camera::new(
-        lookfrom,
-        lookat,
-        vup,
-        fov,
-        ASPECT_RATIO,
-        aperture,
-        dist_to_focus,
-        0.0,
-        1.0,
-    );
-
-    (world, cam, background)
-}
-
 fn cornell_smoke() -> (HittableList, Camera, Color) {
     let mut world = HittableList::new();
     let background = Color::new(0.0, 0.0, 0.0);
@@ -388,20 +349,63 @@ pub fn cornell_box(aspect_ratio: f32) -> (HittableList, Camera, Color, HittableL
     let box1 = RotateY::new(box1, -18.0);
     let box1 = Translate::new(box1, Vec3::new(0.0, 0.0, -30.0));
     world.push(box1);
+    /*
+    let glass_sphere = Sphere::new(Vec3::new(190.0, 90.0, 190.0), 90.0, Dieletric::new(1.5));
+    world.push(glass_sphere.clone());
+    lights.push(glass_sphere);
+    */
 
     let box2 = RectBox::new(Point3::new(265.0, 0.0, 295.0), Point3::new(430.0, 330.0, 460.0), aluminum);
     let box2 = RotateY::new(box2, 15.0);
     let box2 = Translate::new(box2, Vec3::new(-35.0, 0.0, 40.0));
     world.push(box2);
 
-    let sphere_mat = NoiseTexture::new(5.0);
-    // let sphere = Sphere::new(Point3::new(170.5, 240.0, 117.5), 75.0, Lambertian::new(sphere_mat));
-    let sphere = Sphere::new(Point3::new(277.0, 35.0, 470.0), 75.0, Lambertian::new(sphere_mat));
-    world.push(sphere);
 
     let lookfrom = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);
     let fov = 40.0;
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.0;
+
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        fov,
+        aspect_ratio,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
+
+    (world, cam, background, lights)
+}
+
+
+pub fn simple_light(aspect_ratio: f32) -> (HittableList, Camera, Color, HittableList) {
+    let mut world = HittableList::new();
+    let mut lights = HittableList::new();
+    let background = Color::new_empty();
+
+    let pertext = NoiseTexture::new(4.0);
+    world.push(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new(pertext)));
+
+    let pertext = NoiseTexture::new(4.0);
+    world.push(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new(pertext)));
+
+    let difflight = DiffuseLight::new(SolidColorTexture::new(Color::new(4.0, 7.0, 9.0)));
+    world.push(AARect::new(Plane::XY, difflight.clone(), 3.0, 5.0, 1.0, 3.0, -2.0));
+    lights.push(AARect::new(Plane::XY, difflight, 3.0, 5.0, 1.0, 3.0, -2.0));
+
+    let difflight = DiffuseLight::new(SolidColorTexture::new(Color::new(9.0, 3.0, 2.0)));
+    world.push(Sphere::new(Point3::new(-1.0, 5.0, -2.0), 1.0, difflight.clone()));
+    lights.push(Sphere::new(Point3::new(-1.0, 5.0, -2.0), 1.0, difflight));
+
+    let lookfrom = Point3::new(26.0, 3.0, 6.0);
+    let lookat = Point3::new(0.0, 2.0, 0.0);
+    let fov = 20.0;
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
     let aperture = 0.0;
