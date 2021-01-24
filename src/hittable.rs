@@ -105,19 +105,11 @@ impl Hittable for HittableList {
     }
 
     fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 {
-        let weight = 1.0 / self.objects.len() as f32;
-        let mut sum = 0.0;
-
-        for obj in &self.objects {
-            sum += weight * obj.pdf_value(orig, v);
-        }
-
-        sum
+        self.objects.iter().map(|h| h.pdf_value(orig, v)).sum::<f32>() / self.objects.len() as f32
     }
 
     fn random(&self, orig: Vec3) -> Vec3 {
-        let mut rng = rand::thread_rng();
-        self.objects[rng.gen_range(0..self.objects.len())].random(orig)
+        self.objects.choose(&mut rand::thread_rng()).unwrap().random(orig)
     }
 }
 
@@ -155,15 +147,22 @@ impl Hittable for Translate {
     }
 }
 
-pub struct RotateY {
+pub enum Axis {
+    X,
+    Y,
+    Z,
+}
+
+pub struct Rotate {
+    axis: Axis,
     hit: Box<dyn Hittable>,
     sin_theta: f32,
     cos_theta: f32,
     bbox: AABB,
 }
 
-impl RotateY {
-    pub fn new(hit: impl Hittable + 'static, angle: f32) -> Self {
+impl Rotate {
+    pub fn new(hit: impl Hittable + 'static, axis: Axis, angle: f32) -> Self {
         let radians = angle.to_radians();
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
@@ -180,10 +179,26 @@ impl RotateY {
                     let y = j as f32 * bbox.max.y + (1 - j) as f32 * bbox.min.y;
                     let z = k as f32 * bbox.max.z + (1 - k) as f32 * bbox.min.z;
 
-                    let newx = cos_theta * x + sin_theta * z;
-                    let newz = -sin_theta * x + cos_theta * z;
+                    let tester = match axis {
+                        Axis::X => {
+                            let newy = cos_theta * y + sin_theta * z;
+                            let newz = -sin_theta * y + cos_theta * z;
 
-                    let tester = Vec3::new(newx, y, newz);
+                            Vec3::new(x, newy, newz)
+                        },
+                        Axis::Y => {
+                            let newx = cos_theta * x + sin_theta * z;
+                            let newz = -sin_theta * x + cos_theta * z;
+
+                            Vec3::new(newx, y, newz)
+                        },
+                        Axis::Z => {
+                            let newx = cos_theta * x + sin_theta * y;
+                            let newy = -sin_theta * x + cos_theta * y;
+
+                            Vec3::new(newx, newy, z)
+                        }
+                    };
 
                     for c in 0..3 {
                         min[c] = min[c].min(tester[c]);
@@ -199,21 +214,28 @@ impl RotateY {
             hit: Box::new(hit),
             sin_theta,
             cos_theta,
-            bbox
+            bbox,
+            axis,
         }
     }
 }
 
-impl Hittable for RotateY {
+impl Hittable for Rotate {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let (a, b) = match self.axis {
+            Axis::X => (1, 2),
+            Axis::Y => (0, 2),
+            Axis::Z => (0, 1),
+        };
+
         let mut origin = r.orig;
         let mut dir = r.dir;
 
-        origin.x = self.cos_theta * r.orig.x - self.sin_theta * r.orig.z;
-        origin.z = self.sin_theta * r.orig.x + self.cos_theta * r.orig.z;
+        origin[a] = self.cos_theta * r.orig[a] - self.sin_theta * r.orig[b];
+        origin[b] = self.sin_theta * r.orig[a] + self.cos_theta * r.orig[b];
 
-        dir.x = self.cos_theta * r.dir.x - self.sin_theta * r.dir.z;
-        dir.z = self.sin_theta * r.dir.x + self.cos_theta * r.dir.z;
+        dir[a] = self.cos_theta * r.dir[a] - self.sin_theta * r.dir[b];
+        dir[b] = self.sin_theta * r.dir[a] + self.cos_theta * r.dir[b];
 
         let rotated_r = Ray::new(origin, dir, r.time);
 
@@ -221,11 +243,11 @@ impl Hittable for RotateY {
             let mut p = rec.p;
             let mut normal = rec.normal;
 
-            p.x = self.cos_theta * rec.p.x + self.sin_theta * rec.p.z;
-            p.z = -self.sin_theta * rec.p.x + self.cos_theta * rec.p.z;
+            p[a] = self.cos_theta * rec.p[a] + self.sin_theta * rec.p[b];
+            p[b] = -self.sin_theta * rec.p[a] + self.cos_theta * rec.p[b];
 
-            normal.x = self.cos_theta * rec.normal.x + self.sin_theta * rec.normal.z;
-            normal.z = -self.sin_theta * rec.normal.x + self.cos_theta * rec.normal.z;
+            normal[a] = self.cos_theta * rec.normal[a] + self.sin_theta * rec.normal[b];
+            normal[b] = -self.sin_theta * rec.normal[a] + self.cos_theta * rec.normal[b];
 
             let mut ret = HitRecord {
                 p,

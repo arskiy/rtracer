@@ -1,7 +1,5 @@
 - sem espectral https://ceciliavision.github.io/graphics/a6/ pq é ineficiente (>3x mais sampling)
 
-- metropolis light transport
-
 - gltf
 - animações
 
@@ -11,7 +9,7 @@
 - cena programavel com lua
 - skyboxes
 - fazer uma GUI agradavel
-- zone plating pra agua
 
+- zone plating pra agua
 - talvez blue noise jittering sampling http://extremelearning.com.au/a-simple-method-to-construct-isotropic-quasirandom-blue-noise-point-sequences/
 - bdrfs daqui https://github.com/chicio/Spectral-Clara-Lux-Tracer/tree/master/SCLT/Objects/BRDF/PhysicalModel
