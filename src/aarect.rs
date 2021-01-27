@@ -14,7 +14,7 @@ pub enum Plane {
 }
 
 #[derive(Clone)]
-pub struct AARect<M: Material>{
+pub struct AARect<M: Material> {
     pub plane: Plane,
     pub material: M,
 
@@ -71,7 +71,17 @@ impl<M: Sync + Send + Material + 'static> Hittable for AARect<M> {
     }
 
     fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
-        Some(AABB::new(Point3::new(self.a0, self.b0, self.k - 0.0001), Point3::new(self.a1, self.b1, self.k + 0.0001)))
+        match self.plane {
+            Plane::XY => {
+                Some(AABB::new(Point3::new(self.a0, self.b0, self.k - 0.0001), Point3::new(self.a1, self.b1, self.k + 0.0001)))
+            },
+            Plane::XZ => {
+                Some(AABB::new(Point3::new(self.a0, self.k - 0.0001, self.b0), Point3::new(self.a1, self.k + 0.0001, self.b1)))
+            },
+            Plane::YZ => {
+                Some(AABB::new(Point3::new(self.k - 0.0001, self.a0, self.b0), Point3::new(self.k + 0.0001, self.a1, self.b1)))
+            },
+        }
     }
 
     fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 { 

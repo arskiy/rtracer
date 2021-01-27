@@ -11,9 +11,11 @@ pub mod bvh;
 pub mod texture;
 pub mod perlin;
 pub mod aarect;
+pub mod triangle;
 pub mod onb;
 pub mod pdf;
 pub mod scenes;
+pub mod gltf_object;
 
 use hittable::*;
 use material::*;
@@ -34,7 +36,7 @@ use std::io::LineWriter;
 const ASPECT_RATIO: f32 = 1.0;
 const NX: usize = 500;
 const NY: usize = (NX as f32 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 10;
+const SAMPLES_PER_PIXEL: usize = 50;
 const MAX_DEPTH: i32 = 50;
 
 // assumes constructor will never panic. we're safe using just Box::new()
@@ -96,7 +98,7 @@ fn main() -> std::io::Result<()> {
             ))) };
 
             (0..NY).into_par_iter().rev().for_each(|y| {
-                // eprintln!("Scanlines remaining: {} / i: {}", y, i);
+                eprintln!("Scanlines remaining: {}", y);
                 for x in 0..NX {
                     let mut pixel_color = Color::new(0.0, 0.0, 0.0);
 
@@ -157,7 +159,7 @@ fn ray_color(ray: Ray, background: Color, world: &HittableList, lights: &Hittabl
 
                         return emitted + attenuation
                             * hit.material.scattering_pdf(&ray, &hit, &scattered)
-                            * ray_color(scattered, background, world, &lights, depth - 1) / pdf_val
+                            * ray_color(scattered, background, world, &lights, depth - 2) / pdf_val;
                     }
                 }
             }

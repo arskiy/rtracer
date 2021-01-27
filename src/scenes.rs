@@ -5,8 +5,80 @@ use crate::camera::*;
 use crate::hittable::*;
 use crate::aarect::*;
 use crate::sphere::*;
+use crate::triangle::Triangle;
 
 pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<HittableList>) {
+    let background = Color::new(0.0, 0.0, 0.0);
+    let mut world_vec = vec!();
+    let mut lights_vec = vec!();
+
+    let mut world = HittableList::new();
+    let mut lights = HittableList::new();
+
+    let red: Lambertian<SolidColorTexture> = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
+    let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
+    let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
+
+    let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
+    let light_ceiling = AARect::new(Plane::XZ, light.clone(), 177.0, 392.0, 163.0, 393.0, 554.0);
+    world.push(light_ceiling);
+    let light_ceiling = AARect::new(Plane::XZ, light.clone(), 177.0, 392.0, 163.0, 393.0, 554.0);
+    lights.push(light_ceiling);
+
+    world.push(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::YZ, red.clone(), 0.0, 555.0, 0.0, 555.0, 0.0));
+    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0));
+    world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
+
+    let box1 = RectBox::new(Point3::new(130.0, 0.0, 65.0), Point3::new(295.0, 165.0, 230.0), white.clone());
+    let box1 = Rotate::new(box1, Axis::Y, -18.0);
+    let box1 = Translate::new(box1, Vec3::new(0.0, 0.0, -30.0));
+    world.push(box1);
+    /*
+    let glass_sphere = Sphere::new(Vec3::new(190.0, 90.0, 190.0), 90.0, Dieletric::new(1.5));
+    world.push(glass_sphere.clone());
+    lights.push(glass_sphere);
+    */
+
+    let box2 = RectBox::new(Point3::new(265.0, 0.0, 295.0), Point3::new(430.0, 330.0, 460.0), aluminum);
+    let box2 = Rotate::new(box2, Axis::Y, 18.0);
+    let box2 = Translate::new(box2, Vec3::new(-35.0, 0.0, 40.0));
+    world.push(box2);
+
+    // let tri = Sphere::new(Point3::new(230.0, 300.0, 170.0), 60.0, red);
+    // let tri = AARect::new(Plane::XY, red, 230.0, 220.0, 290.0, 380.0, 170.0);
+    let tri = Triangle::new(red, Point3::new(150.0, 100.0, 300.0), Point3::new(300.0, 200.0, 300.0), Point3::new(400.0, 100.0, 300.0));
+    world.push(tri);
+
+    world_vec.push(world);
+    lights_vec.push(lights);
+
+
+    let lookfrom = Point3::new(278.0, 278.0, -800.0);
+    let lookat = Point3::new(278.0, 278.0, 0.0);
+    let fov = 40.0;
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.0;
+
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        fov,
+        aspect_ratio,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
+
+    (world_vec, cam, background, lights_vec)
+}
+
+pub fn cornell_box_animated(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<HittableList>) {
     let background = Color::new(0.0, 0.0, 0.0);
     let mut world_vec = vec!();
     let mut lights_vec = vec!();
@@ -32,10 +104,9 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
         world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
         world.push(AARect::new(Plane::XY, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
 
-        println!("i = {:.35}", (i as f32 * 10.0));
         let box1 = RectBox::new(Point3::new(130.0, 0.0, 65.0), Point3::new(295.0, 165.0, 230.0), white.clone());
-        let box1 = Rotate::new(box1, Axis::Y, i as f32 * 10.0);
-        let box1 = Translate::new(box1, Vec3::new(20.0, i as f32 * 10.0, -30.0));
+        let box1 = Rotate::new(box1, Axis::X, i as f32 * -18.0);
+        let box1 = Translate::new(box1, Vec3::new(0.0, 0.0, -30.0));
         world.push(box1);
         /*
         let glass_sphere = Sphere::new(Vec3::new(190.0, 90.0, 190.0), 90.0, Dieletric::new(1.5));

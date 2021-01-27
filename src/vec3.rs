@@ -284,6 +284,14 @@ impl Vec3 {
 
         Self { x, y, z }
     }
+
+    pub fn is_nan(&self) -> bool {
+        if self.x.is_nan() { return true; }
+        if self.y.is_nan() { return true; }
+        if self.z.is_nan() { return true; }
+
+        false
+    }
 }
 
 
