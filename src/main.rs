@@ -15,7 +15,9 @@ pub mod triangle;
 pub mod onb;
 pub mod pdf;
 pub mod scenes;
-pub mod gltf_object;
+pub mod gltf;
+pub mod transforms;
+pub mod matrix4;
 
 use hittable::*;
 use material::*;
@@ -36,7 +38,7 @@ use std::io::LineWriter;
 const ASPECT_RATIO: f32 = 1.0;
 const NX: usize = 500;
 const NY: usize = (NX as f32 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 50;
+const SAMPLES_PER_PIXEL: usize = 100;
 const MAX_DEPTH: i32 = 50;
 
 // assumes constructor will never panic. we're safe using just Box::new()

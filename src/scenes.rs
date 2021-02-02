@@ -6,19 +6,42 @@ use crate::hittable::*;
 use crate::aarect::*;
 use crate::sphere::*;
 use crate::triangle::Triangle;
+use crate::gltf::GLTF;
+use crate::transforms::*;
+use crate::matrix4::Matrix4;
 
 pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<HittableList>) {
     let background = Color::new(0.0, 0.0, 0.0);
     let mut world_vec = vec!();
     let mut lights_vec = vec!();
 
+    let gltf = GLTF::new("gltf-models/Box.gltf".to_string()).unwrap();
+
     let mut world = HittableList::new();
     let mut lights = HittableList::new();
 
-    let red: Lambertian<SolidColorTexture> = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
+    let red = Lambertian::new(SolidColorTexture::new(Color::new(0.65, 0.05, 0.05)));
     let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
     let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
+
+    for mesh in gltf.meshes {
+        for indices in mesh.indices.chunks(3) {
+            // world.push(Triangle::new(red.clone(), Point3::new(v[0] * 200.0, v[1] * 200.0, v[2] * 200.0), Point3::new(v[3] * 200.0, v[4] * 200.0, v[5] * 200.0), Point3::new(v[6] * 200.0, v[7] * 200.0, v[8] * 200.0)));
+
+            /*
+            world.push(Translate::new(Triangle::new(red.clone(), 
+                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * Point3::new(v[0], v[1], v[2]), 
+                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * Point3::new(v[3], v[4], v[5]), 
+                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * Point3::new(v[6], v[7], v[8])), Vec3::new(150.0, 300.0, 150.0)));
+                                     */
+            
+            world.push(Translate::new(Rotate::new(Triangle::new(red.clone(), 
+                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * mesh.positions[indices[0] as usize],
+                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * mesh.positions[indices[1] as usize], 
+                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * mesh.positions[indices[2] as usize]), Axis::Y, 30.0), Vec3::new(150.0, 300.0, 150.0)));
+        }
+    }
 
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
     let light_ceiling = AARect::new(Plane::XZ, light.clone(), 177.0, 392.0, 163.0, 393.0, 554.0);
@@ -26,7 +49,7 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
     let light_ceiling = AARect::new(Plane::XZ, light.clone(), 177.0, 392.0, 163.0, 393.0, 554.0);
     lights.push(light_ceiling);
 
-    world.push(AARect::new(Plane::YZ, green, 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.push(AARect::new(Plane::YZ, green.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
     world.push(AARect::new(Plane::YZ, red.clone(), 0.0, 555.0, 0.0, 555.0, 0.0));
     world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 0.0));
     world.push(AARect::new(Plane::XZ, white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
@@ -39,18 +62,21 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
     /*
     let glass_sphere = Sphere::new(Vec3::new(190.0, 90.0, 190.0), 90.0, Dieletric::new(1.5));
     world.push(glass_sphere.clone());
-    lights.push(glass_sphere);
+    // lights.push(glass_sphere);
     */
+
 
     let box2 = RectBox::new(Point3::new(265.0, 0.0, 295.0), Point3::new(430.0, 330.0, 460.0), aluminum);
     let box2 = Rotate::new(box2, Axis::Y, 18.0);
     let box2 = Translate::new(box2, Vec3::new(-35.0, 0.0, 40.0));
     world.push(box2);
 
-    // let tri = Sphere::new(Point3::new(230.0, 300.0, 170.0), 60.0, red);
-    // let tri = AARect::new(Plane::XY, red, 230.0, 220.0, 290.0, 380.0, 170.0);
-    let tri = Triangle::new(red, Point3::new(150.0, 100.0, 300.0), Point3::new(300.0, 200.0, 300.0), Point3::new(400.0, 100.0, 300.0));
+    /*
+    let mut tri = Triangle::new(green, Point3::new(150.0, 100.0, 300.0), Point3::new(300.0, 200.0, 300.0), Point3::new(400.0, 100.0, 300.0));
+    tri.scale(Vec3::new(1.5, 1.5, 1.5));
+    let tri = Translate::new(tri, Vec3::new(-70.0, 0.0, 0.0));
     world.push(tri);
+    */
 
     world_vec.push(world);
     lights_vec.push(lights);
@@ -188,8 +214,7 @@ pub fn simple_light(aspect_ratio: f32) -> (HittableList, Camera, Color, Hittable
     (world, cam, background, lights)
 }
 
-/*
-fn first_scene() -> (HittableList, Camera, Color) {
+pub fn first_scene(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<HittableList>) {
     let mut world = HittableList::new();
     let background = Color::new(0.7, 0.8, 1.0);
 
@@ -199,12 +224,11 @@ fn first_scene() -> (HittableList, Camera, Color) {
     let material_left = Dieletric::new(1.5);
     let material_right = Metal::new(Color::new(0.8, 0.2, 0.8), 0.2);
 
-    world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
-    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center.clone())));
-    world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
-    world.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -2.0), 0.5, material_bh)));
-    world.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
-    world.push(Box::new(AARect::new(Plane::XY, material_center, 0.5, 0.5, 1.5, 0.0, 3.0)));
+    world.push(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground));
+    world.push(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center.clone()));
+    world.push(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left));
+    world.push(Sphere::new(Point3::new(-1.0, 0.0, -2.0), 0.5, material_bh));
+    world.push(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right));
 
 
     let lookfrom = Point3::new(0.0, 0.0, 1.0);
@@ -218,16 +242,17 @@ fn first_scene() -> (HittableList, Camera, Color) {
         lookat,
         vup,
         90.0,
-        ASPECT_RATIO,
+        aspect_ratio,
         aperture,
         dist_to_focus,
         0.0,
         1.0,
     );
 
-    (world, cam, background)
+    (vec!(world), cam, background, vec!())
 }
 
+/*
 fn random_scene_book() -> (HittableList, Camera, Color) {
     let mut rng = rand::thread_rng();
     let mut world = HittableList::new();

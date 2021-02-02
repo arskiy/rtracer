@@ -29,6 +29,31 @@ impl<M: Material> AARect<M> {
     pub fn new(plane: Plane, material: M, a0: f32, a1: f32, b0: f32, b1: f32, k: f32) -> Self {
         Self { plane, material, a0, a1, b0, b1, k }
     }
+
+    pub fn scale(&mut self, scale: Vec3) {
+        match self.plane {
+            Plane::XY => {
+                self.a0 *= scale.x;
+                self.a1 *= scale.x;
+                self.b0 *= scale.y;
+                self.b1 *= scale.y;
+            }
+
+            Plane::XZ => {
+                self.a0 *= scale.x;
+                self.a1 *= scale.x;
+                self.b0 *= scale.z;
+                self.b1 *= scale.z;
+            }
+
+            Plane::YZ => {
+                self.a0 *= scale.y;
+                self.a1 *= scale.y;
+                self.b0 *= scale.z;
+                self.b1 *= scale.z;
+            }
+        }
+    }
 }
 
 impl<M: Sync + Send + Material + 'static> Hittable for AARect<M> { 

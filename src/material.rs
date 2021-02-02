@@ -118,6 +118,8 @@ impl Material for Dieletric {
         }
 
         let reflected = reflect(ray.dir, hr.normal);
+        if reflected.is_nan() { panic!(format!("reflected: {:?}", reflected)); }
+
         let reflected = Ray::new(hr.p, reflected, ray.time);
 
         Some(ReflectionRecord::Specular {

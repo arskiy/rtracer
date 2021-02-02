@@ -23,6 +23,11 @@ impl<M: Material> Sphere<M> {
             material,
         }
     }
+
+    pub fn scale(&mut self, scale: Vec3) {
+        // should be x = y = z on this scale vector
+        self.radius *= scale.x;
+    }
 }
 
 impl<M: Sync + Send + Material> Hittable for Sphere<M> {
@@ -127,6 +132,11 @@ impl<M: Material> MovingSphere<M> {
     fn calc_time(&self, time: f32) -> Point3 {
         self.center0
             + ((time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)
+    }
+
+    pub fn scale(&mut self, scale: Vec3) {
+        // should be x = y = z on this scale vector
+        self.radius *= scale.x ;
     }
 }
 
