@@ -1,6 +1,6 @@
-use crate::material::Material;
-use crate::hittable::*;
 use crate::aabb::AABB;
+use crate::hittable::*;
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::*;
 
@@ -22,12 +22,20 @@ pub struct AARect<M: Material> {
     pub a1: f32,
     pub b0: f32,
     pub b1: f32,
-    pub k: f32
+    pub k: f32,
 }
 
 impl<M: Material> AARect<M> {
     pub fn new(plane: Plane, material: M, a0: f32, a1: f32, b0: f32, b1: f32, k: f32) -> Self {
-        Self { plane, material, a0, a1, b0, b1, k }
+        Self {
+            plane,
+            material,
+            a0,
+            a1,
+            b0,
+            b1,
+            k,
+        }
     }
 
     pub fn scale(&mut self, scale: Vec3) {
@@ -56,7 +64,7 @@ impl<M: Material> AARect<M> {
     }
 }
 
-impl<M: Sync + Send + Material + 'static> Hittable for AARect<M> { 
+impl<M: Sync + Send + Material + 'static> Hittable for AARect<M> {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let (k_axis, a_axis, b_axis, outward_normal) = match &self.plane {
             Plane::XY => (2, 0, 1, Vec3::new(0.0, 0.0, 1.0)),
@@ -66,7 +74,9 @@ impl<M: Sync + Send + Material + 'static> Hittable for AARect<M> {
 
         let t = (self.k - r.orig[k_axis]) / r.dir[k_axis];
 
-        if t < t_min || t > t_max { return None; }
+        if t < t_min || t > t_max {
+            return None;
+        }
 
         let a = r.orig[a_axis] + t * r.dir[a_axis];
         let b = r.orig[b_axis] + t * r.dir[b_axis];
@@ -97,19 +107,22 @@ impl<M: Sync + Send + Material + 'static> Hittable for AARect<M> {
 
     fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         match self.plane {
-            Plane::XY => {
-                Some(AABB::new(Point3::new(self.a0, self.b0, self.k - 0.0001), Point3::new(self.a1, self.b1, self.k + 0.0001)))
-            },
-            Plane::XZ => {
-                Some(AABB::new(Point3::new(self.a0, self.k - 0.0001, self.b0), Point3::new(self.a1, self.k + 0.0001, self.b1)))
-            },
-            Plane::YZ => {
-                Some(AABB::new(Point3::new(self.k - 0.0001, self.a0, self.b0), Point3::new(self.k + 0.0001, self.a1, self.b1)))
-            },
+            Plane::XY => Some(AABB::new(
+                Point3::new(self.a0, self.b0, self.k - 0.0001),
+                Point3::new(self.a1, self.b1, self.k + 0.0001),
+            )),
+            Plane::XZ => Some(AABB::new(
+                Point3::new(self.a0, self.k - 0.0001, self.b0),
+                Point3::new(self.a1, self.k + 0.0001, self.b1),
+            )),
+            Plane::YZ => Some(AABB::new(
+                Point3::new(self.k - 0.0001, self.a0, self.b0),
+                Point3::new(self.k + 0.0001, self.a1, self.b1),
+            )),
         }
     }
 
-    fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 { 
+    fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 {
         if let Some(hit) = self.hit(&Ray::new(orig, v, 0.0), 0.001, std::f32::INFINITY) {
             let area = (self.a1 - self.a0) * (self.b1 - self.b0);
 
@@ -123,12 +136,24 @@ impl<M: Sync + Send + Material + 'static> Hittable for AARect<M> {
         0.0
     }
 
-    fn random(&self, orig: Vec3) -> Vec3 { 
+    fn random(&self, orig: Vec3) -> Vec3 {
         let mut rng = rand::thread_rng();
         let random_point = match &self.plane {
-            Plane::XY => Point3::new(rng.gen_range(self.a0..self.a1), rng.gen_range(self.b0..self.b1), self.k),
-            Plane::XZ => Point3::new(rng.gen_range(self.a0..self.a1), self.k, rng.gen_range(self.b0..self.b1)),
-            Plane::YZ => Point3::new(self.k, rng.gen_range(self.a0..self.a1), rng.gen_range(self.b0..self.b1)),
+            Plane::XY => Point3::new(
+                rng.gen_range(self.a0..self.a1),
+                rng.gen_range(self.b0..self.b1),
+                self.k,
+            ),
+            Plane::XZ => Point3::new(
+                rng.gen_range(self.a0..self.a1),
+                self.k,
+                rng.gen_range(self.b0..self.b1),
+            ),
+            Plane::YZ => Point3::new(
+                self.k,
+                rng.gen_range(self.a0..self.a1),
+                rng.gen_range(self.b0..self.b1),
+            ),
         };
 
         random_point - orig
@@ -146,12 +171,60 @@ impl RectBox {
         let box_min = p0;
         let box_max = p1;
         let mut sides = HittableList::new();
-        sides.push(AARect::new(Plane::XY, material.clone(), p0.x, p1.x, p0.y, p1.y, p1.z));
-        sides.push(AARect::new(Plane::XY, material.clone(), p0.x, p1.x, p0.y, p1.y, p0.z));
-        sides.push(AARect::new(Plane::XZ, material.clone(), p0.x, p1.x, p0.z, p1.z, p1.y));
-        sides.push(AARect::new(Plane::XZ, material.clone(), p0.x, p1.x, p0.z, p1.z, p0.y));
-        sides.push(AARect::new(Plane::YZ, material.clone(), p0.y, p1.y, p0.z, p1.z, p1.x));
-        sides.push(AARect::new(Plane::YZ, material, p0.y, p1.y, p0.z, p1.z, p0.x));
+        sides.push(AARect::new(
+            Plane::XY,
+            material.clone(),
+            p0.x,
+            p1.x,
+            p0.y,
+            p1.y,
+            p1.z,
+        ));
+        sides.push(AARect::new(
+            Plane::XY,
+            material.clone(),
+            p0.x,
+            p1.x,
+            p0.y,
+            p1.y,
+            p0.z,
+        ));
+        sides.push(AARect::new(
+            Plane::XZ,
+            material.clone(),
+            p0.x,
+            p1.x,
+            p0.z,
+            p1.z,
+            p1.y,
+        ));
+        sides.push(AARect::new(
+            Plane::XZ,
+            material.clone(),
+            p0.x,
+            p1.x,
+            p0.z,
+            p1.z,
+            p0.y,
+        ));
+        sides.push(AARect::new(
+            Plane::YZ,
+            material.clone(),
+            p0.y,
+            p1.y,
+            p0.z,
+            p1.z,
+            p1.x,
+        ));
+        sides.push(AARect::new(
+            Plane::YZ,
+            material,
+            p0.y,
+            p1.y,
+            p0.z,
+            p1.z,
+            p0.x,
+        ));
         Self {
             box_min,
             box_max,

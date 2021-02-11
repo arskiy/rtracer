@@ -1,6 +1,6 @@
-use crate::material::Material;
-use crate::hittable::*;
 use crate::aabb::AABB;
+use crate::hittable::*;
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::*;
 
@@ -35,7 +35,7 @@ impl<M: Material> Triangle<M> {
     }
 }
 
-impl<M: Sync + Send + Material + 'static> Hittable for Triangle<M> { 
+impl<M: Sync + Send + Material + 'static> Hittable for Triangle<M> {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let v0v1 = self.v1 - self.v0;
         let v0v2 = self.v2 - self.v0;
@@ -44,21 +44,29 @@ impl<M: Sync + Send + Material + 'static> Hittable for Triangle<M> {
         let det = v0v1.dot(p);
 
         // no back-face culling
-        if det.abs() < 0.0001 { return None; }
+        if det.abs() < 0.0001 {
+            return None;
+        }
 
         let inv_det = 1.0 / det;
 
         let tvec = r.orig - self.v0;
         let u = tvec.dot(p) * inv_det;
-        if u < 0.0 || u > 1.0 { return None; }
+        if u < 0.0 || u > 1.0 {
+            return None;
+        }
 
         let q = tvec.cross(v0v1);
         let v = r.dir.dot(q) * inv_det;
-        if v < 0.0 || u + v > 1.0 { return None; }
+        if v < 0.0 || u + v > 1.0 {
+            return None;
+        }
 
         let t = v0v2.dot(q) * inv_det;
 
-        if t < t_min || t > t_max { return None; }
+        if t < t_min || t > t_max {
+            return None;
+        }
 
         let p = r.at(t);
 

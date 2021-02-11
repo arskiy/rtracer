@@ -180,6 +180,15 @@ impl Vec3 {
         }
     }
 
+    pub fn random_range_i32(min: i32, max: i32) -> Self {
+        let mut rng = thread_rng();
+        Self {
+            x: rng.gen_range(min..max) as f32,
+            y: rng.gen_range(min..max) as f32,
+            z: rng.gen_range(min..max) as f32,
+        }
+    }
+
     pub fn length(&self) -> f32 {
         self.length_squared().sqrt()
     }
@@ -232,19 +241,25 @@ impl Vec3 {
     pub fn calc_color(pixel_color: Color, samples_per_pixel: usize) -> Vec3 {
         let mut ret = pixel_color;
 
-        if ret.x.is_nan() { ret.x = 0.0; }
-        if ret.y.is_nan() { ret.y = 0.0; }
-        if ret.z.is_nan() { ret.z = 0.0; }
-    
+        if ret.x.is_nan() {
+            ret.x = 0.0;
+        }
+        if ret.y.is_nan() {
+            ret.y = 0.0;
+        }
+        if ret.z.is_nan() {
+            ret.z = 0.0;
+        }
+
         let scale = 1.0 / samples_per_pixel as f32;
         ret.x = (scale * ret.x).sqrt();
         ret.y = (scale * ret.y).sqrt();
         ret.z = (scale * ret.z).sqrt();
-    
+
         ret.x = 256.0 * Self::clamp(ret.x, 0.0, 0.99);
         ret.y = 256.0 * Self::clamp(ret.y, 0.0, 0.99);
         ret.z = 256.0 * Self::clamp(ret.z, 0.0, 0.99);
-    
+
         ret
     }
 
@@ -264,7 +279,7 @@ impl Vec3 {
         loop {
             let p = 2.0 * Vec3::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>()) - unit;
             if p.length_squared() < 1.0 {
-                return p
+                return p;
             }
         }
     }
@@ -292,14 +307,19 @@ impl Vec3 {
     }
 
     pub fn is_nan(&self) -> bool {
-        if self.x.is_nan() { return true; }
-        if self.y.is_nan() { return true; }
-        if self.z.is_nan() { return true; }
+        if self.x.is_nan() {
+            return true;
+        }
+        if self.y.is_nan() {
+            return true;
+        }
+        if self.z.is_nan() {
+            return true;
+        }
 
         false
     }
 }
-
 
 impl IntoIterator for Vec3 {
     type Item = f32;
@@ -310,8 +330,5 @@ impl IntoIterator for Vec3 {
     }
 }
 
-
 pub type Color = Vec3;
 pub type Point3 = Vec3;
-
-

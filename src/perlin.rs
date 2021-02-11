@@ -12,7 +12,7 @@ pub struct Perlin {
 
 impl Perlin {
     pub fn new() -> Self {
-        let mut ranfloat = vec!();
+        let mut ranfloat = vec![];
 
         for _ in 0..POINT_COUNT {
             ranfloat.push(Vec3::random_range(-1.0, 1.0));
@@ -43,11 +43,9 @@ impl Perlin {
         for di in 0..2 {
             for dj in 0..2 {
                 for dk in 0..2 {
-                    c[di][dj][dk] = self.ranfloat[
-                        self.perm_x[(i + di) & 0xFF] ^
-                        self.perm_y[(j + dj) & 0xFF] ^
-                        self.perm_z[(k + dk) & 0xFF]
-                    ];
+                    c[di][dj][dk] = self.ranfloat[self.perm_x[(i + di) & 0xFF]
+                        ^ self.perm_y[(j + dj) & 0xFF]
+                        ^ self.perm_z[(k + dk) & 0xFF]];
                 }
             }
         }
@@ -57,9 +55,10 @@ impl Perlin {
             for j in 0..2 {
                 for k in 0..2 {
                     let weight_v = Vec3::new(u - i as f32, v - j as f32, w - k as f32);
-                    accum += (i as f32 * u + (1.0 - i as f32) * (1.0 - u)) *
-                        (j as f32 * v + (1.0 - j as f32) * (1.0 - v)) *
-                        (k as f32 * w + (1.0 - k as f32) * (1.0 - w)) * c[i][j][k].dot(weight_v);
+                    accum += (i as f32 * u + (1.0 - i as f32) * (1.0 - u))
+                        * (j as f32 * v + (1.0 - j as f32) * (1.0 - v))
+                        * (k as f32 * w + (1.0 - k as f32) * (1.0 - w))
+                        * c[i][j][k].dot(weight_v);
                 }
             }
         }
@@ -82,14 +81,14 @@ impl Perlin {
 }
 
 fn perlin_generate_perm() -> Vec<usize> {
-    let mut p = vec!();
+    let mut p = vec![];
 
     for i in 0..POINT_COUNT {
         p.push(i);
     }
 
     let mut rng = rand::thread_rng();
-    
+
     for i in (1..POINT_COUNT).rev() {
         let target = rng.gen_range(0..i);
         p.swap(i, target)

@@ -1,8 +1,8 @@
-use crate::hittable::*;
-use crate::vec3::*;
-use crate::ray::Ray;
 use crate::aabb::AABB;
+use crate::hittable::*;
 use crate::matrix4::Matrix4;
+use crate::ray::Ray;
+use crate::vec3::*;
 
 use std::f32;
 
@@ -13,9 +13,9 @@ pub enum Axis {
 }
 
 pub struct Transform {
-  pub hit: Box<dyn Hittable>,
-  pub transform_mat: Matrix4,
-  inv_transform: Matrix4
+    pub hit: Box<dyn Hittable>,
+    pub transform_mat: Matrix4,
+    inv_transform: Matrix4,
 }
 
 impl Transform {
@@ -30,7 +30,11 @@ impl Transform {
 
 impl Hittable for Transform {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
-        let transformed_ray = Ray::new(self.transform_mat * r.orig, self.transform_mat.mul_as_33(r.dir), r.time);
+        let transformed_ray = Ray::new(
+            self.transform_mat * r.orig,
+            self.transform_mat.mul_as_33(r.dir),
+            r.time,
+        );
         if let Some(mut hit) = self.hit.hit(&transformed_ray, t_min, t_max) {
             hit.p = self.inv_transform * r.orig;
             hit.normal = self.inv_transform.mul_as_33(hit.normal);
@@ -47,10 +51,12 @@ impl Hittable for Transform {
             for i in 0..2 {
                 for j in 0..2 {
                     for k in 0..2 {
-                        let v = self.inv_transform * Vec3::new(
-                            i as f32 * bbox.max.x + ((1 - i) as f32) * bbox.min.x,
-                            j as f32 * bbox.max.y + ((1 - j) as f32) * bbox.min.y,
-                            k as f32 * bbox.max.z + ((1 - k) as f32) * bbox.min.z);
+                        let v = self.inv_transform
+                            * Vec3::new(
+                                i as f32 * bbox.max.x + ((1 - i) as f32) * bbox.min.x,
+                                j as f32 * bbox.max.y + ((1 - j) as f32) * bbox.min.y,
+                                k as f32 * bbox.max.z + ((1 - k) as f32) * bbox.min.z,
+                            );
 
                         for c in 0..3 {
                             if v[c] < min[c] {
@@ -78,7 +84,10 @@ pub struct Translate {
 
 impl Translate {
     pub fn new(hit: impl Hittable + 'static, offset: Vec3) -> Self {
-        Self { hit: Box::new(hit), offset }
+        Self {
+            hit: Box::new(hit),
+            offset,
+        }
     }
 }
 
@@ -97,8 +106,9 @@ impl Hittable for Translate {
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
         if let Some(output_box) = self.hit.bounding_box(time0, time1) {
             Some(AABB::new(
-                    output_box.min + self.offset,
-                    output_box.max + self.offset))
+                output_box.min + self.offset,
+                output_box.max + self.offset,
+            ))
         } else {
             None
         }
@@ -137,13 +147,13 @@ impl Rotate {
                             let newz = -sin_theta * y + cos_theta * z;
 
                             Vec3::new(x, newy, newz)
-                        },
+                        }
                         Axis::Y => {
                             let newx = cos_theta * x + sin_theta * z;
                             let newz = -sin_theta * x + cos_theta * z;
 
                             Vec3::new(newx, y, newz)
-                        },
+                        }
                         Axis::Z => {
                             let newx = cos_theta * x + sin_theta * y;
                             let newy = -sin_theta * x + cos_theta * y;
@@ -236,7 +246,7 @@ impl Scale {
     }
 }
 
-impl Hittable for Scale { 
+impl Hittable for Scale {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         if let Some(mut rec) = self.hit.hit(&r, t_min, t_max) {
             rec.set_face_normal(&r, rec.normal);
@@ -245,7 +255,7 @@ impl Hittable for Scale {
             None
         }
     }
-    
+
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
         if let Some(output_box) = self.hit.bounding_box(time0, time1) {
             Some(AABB::new(

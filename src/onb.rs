@@ -1,5 +1,5 @@
-use std::ops;
 use crate::vec3::Vec3;
+use std::ops;
 
 pub struct ONB {
     pub u: Vec3,
@@ -19,7 +19,6 @@ impl ops::Index<usize> for ONB {
         }
     }
 }
-
 
 impl ONB {
     pub fn local(&self, a: f32, b: f32, c: f32) -> Vec3 {

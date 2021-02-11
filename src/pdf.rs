@@ -1,6 +1,6 @@
-use crate::vec3::*;
-use crate::onb::ONB;
 use crate::hittable::*;
+use crate::onb::ONB;
+use crate::vec3::*;
 
 use std::f32::consts;
 
@@ -15,14 +15,20 @@ pub struct CosinePDF {
 
 impl CosinePDF {
     pub fn new(w: Vec3) -> Self {
-        Self { uvw: ONB::build_from_w(w) }
+        Self {
+            uvw: ONB::build_from_w(w),
+        }
     }
 }
 
 impl PDF for CosinePDF {
     fn value(&self, dir: Vec3) -> f32 {
         let cosine = dir.unit_vector().dot(self.uvw.w);
-        if cosine <= 0.0 { 0.0 } else { cosine / consts::PI }
+        if cosine <= 0.0 {
+            0.0
+        } else {
+            cosine / consts::PI
+        }
     }
 
     fn generate(&self) -> Vec3 {

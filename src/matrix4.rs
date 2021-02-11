@@ -1,6 +1,6 @@
+use crate::vec3::*;
 use std::f32;
 use std::ops;
-use crate::vec3::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Matrix4(pub [[f32; 4]; 4]);
@@ -8,27 +8,29 @@ pub struct Matrix4(pub [[f32; 4]; 4]);
 impl Matrix4 {
     pub fn identity() -> Self {
         Self([
-             [1.0, 0.0, 0.0, 0.0],
-             [0.0, 1.0, 0.0, 0.0],
-             [0.0, 0.0, 1.0, 0.0],
-             [0.0, 0.0, 0.0, 1.0]])
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
     }
 
     pub fn scale(offset: Vec3) -> Self {
         Self([
-             [offset.x, 0.0, 0.0, 0.0],
-             [0.0, offset.y, 0.0, 0.0],
-             [0.0, 0.0, offset.z, 0.0],
-             [0.0, 0.0, 0.0, 1.0]])
+            [offset.x, 0.0, 0.0, 0.0],
+            [0.0, offset.y, 0.0, 0.0],
+            [0.0, 0.0, offset.z, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
     }
 
     pub fn translate(offset: Vec3) -> Self {
         Self([
-             [1.0, 0.0, 0.0, -offset.x],
-             [0.0, 1.0, 0.0, -offset.y],
-             [0.0, 0.0, 1.0, -offset.z],
-             [0.0, 0.0, 0.0, 1.0]])
-
+            [1.0, 0.0, 0.0, -offset.x],
+            [0.0, 1.0, 0.0, -offset.y],
+            [0.0, 0.0, 1.0, -offset.z],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
     }
 
     pub fn rotate(angle: f32, axis: Vec3) -> Self {
@@ -39,10 +41,26 @@ impl Matrix4 {
         let t = 1.0 - c;
 
         Self([
-             [t * norm.x * norm.x + c, t * norm.x * norm.y + s * norm.z, t * norm.x * norm.z - s * norm.y, 0.0],
-             [t * norm.y * norm.x - s * norm.z, t * norm.y * norm.y + c, t * norm.y * norm.z + s * norm.x, 0.0],
-             [t * norm.z * norm.x + s * norm.y, t * norm.z * norm.y - s * norm.x, t * norm.z * norm.z + c, 0.0],
-             [0.0, 0.0, 0.0, 1.0]])
+            [
+                t * norm.x * norm.x + c,
+                t * norm.x * norm.y + s * norm.z,
+                t * norm.x * norm.z - s * norm.y,
+                0.0,
+            ],
+            [
+                t * norm.y * norm.x - s * norm.z,
+                t * norm.y * norm.y + c,
+                t * norm.y * norm.z + s * norm.x,
+                0.0,
+            ],
+            [
+                t * norm.z * norm.x + s * norm.y,
+                t * norm.z * norm.y - s * norm.x,
+                t * norm.z * norm.z + c,
+                0.0,
+            ],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
     }
 
     pub fn inverse(&self) -> Option<Self> {
@@ -77,7 +95,9 @@ impl Matrix4 {
             }
 
             for j in 0..=3 {
-                if j == i { continue; }
+                if j == i {
+                    continue;
+                }
 
                 diag = temp.0[i][j];
                 for k in 0..=3 {
@@ -91,9 +111,11 @@ impl Matrix4 {
     }
 
     pub fn mul_as_33(&self, other: Vec3) -> Vec3 {
-        Vec3::new(self.0[0][0] * other.x + self.0[0][1] * other.y + self.0[0][2] * other.z,
+        Vec3::new(
+            self.0[0][0] * other.x + self.0[0][1] * other.y + self.0[0][2] * other.z,
             self.0[1][0] * other.x + self.0[1][1] * other.y + self.0[1][2] * other.z,
-            self.0[2][0] * other.x + self.0[2][1] * other.y + self.0[2][2] * other.z)
+            self.0[2][0] * other.x + self.0[2][1] * other.y + self.0[2][2] * other.z,
+        )
     }
 }
 
@@ -104,7 +126,8 @@ impl ops::Mul<Vec3> for Matrix4 {
         Vec3::new(
             self.0[0][0] * other.x + self.0[0][1] * other.y + self.0[0][2] * other.z + self.0[0][3],
             self.0[1][0] * other.x + self.0[1][1] * other.y + self.0[1][2] * other.z + self.0[1][3],
-            self.0[2][0] * other.x + self.0[2][1] * other.y + self.0[2][2] * other.z + self.0[2][3]) 
+            self.0[2][0] * other.x + self.0[2][1] * other.y + self.0[2][2] * other.z + self.0[2][3],
+        )
     }
 }
 

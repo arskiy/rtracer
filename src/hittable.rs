@@ -1,11 +1,11 @@
-use crate::material::{Material, Isotropic};
-use crate::ray::Ray;
-use crate::vec3::{Point3, Vec3};
 use crate::aabb::AABB;
+use crate::material::{Isotropic, Material};
+use crate::ray::Ray;
 use crate::texture::Texture;
+use crate::vec3::{Point3, Vec3};
 
-use std::sync::Arc;
 use std::f32;
+use std::sync::Arc;
 
 use rand::prelude::*;
 
@@ -33,8 +33,12 @@ impl HitRecord<'_> {
 pub trait Hittable: Sync + Send {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
-    fn pdf_value(&self, _orig: Point3, _v: Vec3) -> f32 { 0.0 }
-    fn random(&self, _orig: Vec3) -> Vec3 { Vec3::new(1.0, 0.0, 0.0) }
+    fn pdf_value(&self, _orig: Point3, _v: Vec3) -> f32 {
+        0.0
+    }
+    fn random(&self, _orig: Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
+    }
 }
 
 #[derive(Clone)]
@@ -44,7 +48,7 @@ pub struct HittableList {
 
 impl HittableList {
     pub fn new() -> Self {
-        Self { objects: vec!() }
+        Self { objects: vec![] }
     }
 
     pub fn clear(&mut self) {
@@ -61,6 +65,10 @@ impl HittableList {
 
     pub fn push(&mut self, object: impl Hittable + 'static) {
         self.objects.push(Arc::new(object))
+    }
+
+    pub fn push_arc(&mut self, object: Arc<dyn Hittable>) {
+        self.objects.push(object);
     }
 }
 
@@ -92,7 +100,7 @@ impl Hittable for HittableList {
                 output_box = if first_box {
                     temp_box
                 } else {
-                    AABB::surrounding_box(output_box, temp_box)
+                    AABB::surrounding_box(&output_box, &temp_box)
                 };
 
                 first_box = false;
@@ -105,11 +113,18 @@ impl Hittable for HittableList {
     }
 
     fn pdf_value(&self, orig: Point3, v: Vec3) -> f32 {
-        self.objects.iter().map(|h| h.pdf_value(orig, v)).sum::<f32>() / self.objects.len() as f32
+        self.objects
+            .iter()
+            .map(|h| h.pdf_value(orig, v))
+            .sum::<f32>()
+            / self.objects.len() as f32
     }
 
     fn random(&self, orig: Vec3) -> Vec3 {
-        self.objects.choose(&mut rand::thread_rng()).unwrap().random(orig)
+        self.objects
+            .choose(&mut rand::thread_rng())
+            .unwrap()
+            .random(orig)
     }
 }
 
@@ -121,7 +136,11 @@ pub struct ConstantMedium {
 
 impl ConstantMedium {
     pub fn new(b: impl Hittable + 'static, d: f32, t: impl Texture + 'static) -> Self {
-        Self { boundary: Arc::new(b), phase_function: Arc::new(Isotropic::new(Box::new(t))), neg_inv_density: (-1.0 / d) }
+        Self {
+            boundary: Arc::new(b),
+            phase_function: Arc::new(Isotropic::new(Box::new(t))),
+            neg_inv_density: (-1.0 / d),
+        }
     }
 }
 
@@ -129,8 +148,12 @@ impl Hittable for ConstantMedium {
     fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         if let Some(mut rec1) = self.boundary.hit(r, f32::NEG_INFINITY, f32::INFINITY) {
             if let Some(mut rec2) = self.boundary.hit(r, rec1.t + 0.0001, f32::INFINITY) {
-                if rec1.t < t_min { rec1.t = t_min }
-                if rec2.t > t_max { rec2.t = t_max }
+                if rec1.t < t_min {
+                    rec1.t = t_min
+                }
+                if rec2.t > t_max {
+                    rec2.t = t_max
+                }
 
                 if rec1.t >= rec2.t {
                     return None;
@@ -152,7 +175,7 @@ impl Hittable for ConstantMedium {
                 let p = r.at(t);
 
                 let normal = Vec3::new(1.0, 0.0, 0.0);
-                let front_face = true; 
+                let front_face = true;
 
                 return Some(HitRecord {
                     t,

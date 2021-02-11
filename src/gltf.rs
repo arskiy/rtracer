@@ -1,9 +1,9 @@
 use gltf;
+use gltf::animation::util::{ReadOutputs, Reader};
 use gltf::buffer::Buffer;
-use gltf::animation::util::{Reader, ReadOutputs};
 
-use crate::vec3::*;
 use crate::matrix4::Matrix4;
+use crate::vec3::*;
 
 pub struct GLTF {
     pub nodes: Vec<Node>,
@@ -34,24 +34,24 @@ impl GLTF {
     pub fn new(fname: String) -> Result<Self, gltf::Error> {
         let (document, buffers, images) = gltf::import(fname)?;
 
-        let (nodes, meshes) = process_nodes(&document, &buffers);        
+        let (nodes, meshes) = process_nodes(&document, &buffers);
 
-        Ok(Self {
-            nodes,
-            meshes,
-        })
+        Ok(Self { nodes, meshes })
     }
 }
 
-fn process_nodes<'a>(document: &'a gltf::Document, buffers: &Vec<gltf::buffer::Data>) -> (Vec<Node>, Vec<Mesh>) {
-    let mut nodes = vec!();
+fn process_nodes<'a>(
+    document: &'a gltf::Document,
+    buffers: &Vec<gltf::buffer::Data>,
+) -> (Vec<Node>, Vec<Mesh>) {
+    let mut nodes = vec![];
     let mut mesh_count = 0;
-    let mut meshes = vec!();
+    let mut meshes = vec![];
 
     for scene in document.scenes() {
         for node in scene.nodes() {
             let transform = Matrix4(node.transform().matrix());
-            let mut stack: Vec<(gltf::Node, Matrix4)> = vec!((node, transform));
+            let mut stack: Vec<(gltf::Node, Matrix4)> = vec![(node, transform)];
 
             while let Some((node, transform)) = stack.pop() {
                 let mut mesh_index = None;
@@ -64,10 +64,10 @@ fn process_nodes<'a>(document: &'a gltf::Document, buffers: &Vec<gltf::buffer::D
                 let mut new_node = Node {
                     index: node.index(),
                     parent_index: -1,
-                    child_indices: vec!(),
-                    rotation_indices: vec!(),
-                    translation_indices: vec!(),
-                    scale_indices: vec!(),
+                    child_indices: vec![],
+                    rotation_indices: vec![],
+                    translation_indices: vec![],
+                    scale_indices: vec![],
                     transform,
                     global_transform: transform,
                     mesh: mesh_index,
@@ -92,57 +92,59 @@ fn process_nodes<'a>(document: &'a gltf::Document, buffers: &Vec<gltf::buffer::D
 
 fn process_meshes(node: &gltf::Node, buffers: &[gltf::buffer::Data]) -> Option<Vec<Mesh>> {
     node.mesh().map(|mesh| {
-        mesh.primitives().map(|primitive| {
-            let mut positions: Vec<Vec3> = vec!();
-            let mut indices: Vec<u32> = vec!();
-            let mut normals: Vec<f32> = vec!();
-            let mut uvs: Vec<f32> = vec!();
-            let mut mat_index = 0;
+        mesh.primitives()
+            .map(|primitive| {
+                let mut positions: Vec<Vec3> = vec![];
+                let mut indices: Vec<u32> = vec![];
+                let mut normals: Vec<f32> = vec![];
+                let mut uvs: Vec<f32> = vec![];
+                let mut mat_index = 0;
 
-            let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
 
-            if let Some(pos) = reader.read_positions() {
-                for p in pos {
-                    let mut vec = Vec3::new_empty();
-                    for i in 0..=2 {
-                        vec[i] = p[i]
-                    }
-                    positions.push(vec);
-                }
-            }
-
-            if let Some(normal) = reader.read_normals() {
-                for n in normal {
-                    for i in 0..=2 {
-                        normals.push(n[i]);
+                if let Some(pos) = reader.read_positions() {
+                    for p in pos {
+                        let mut vec = Vec3::new_empty();
+                        for i in 0..=2 {
+                            vec[i] = p[i]
+                        }
+                        positions.push(vec);
                     }
                 }
-            }
 
-            if let Some(tex) = reader.read_tex_coords(0) {
-                for uv in tex.into_f32() {
-                    for i in 0..=1 {
-                        uvs.push(uv[i]);
+                if let Some(normal) = reader.read_normals() {
+                    for n in normal {
+                        for i in 0..=2 {
+                            normals.push(n[i]);
+                        }
                     }
                 }
-            }
 
-            if let Some(index) = reader.read_indices() {
-                indices.extend(index.into_u32());
-            }
+                if let Some(tex) = reader.read_tex_coords(0) {
+                    for uv in tex.into_f32() {
+                        for i in 0..=1 {
+                            uvs.push(uv[i]);
+                        }
+                    }
+                }
 
-            if let Some(mat) = primitive.material().index() {
-                mat_index = mat;
-            }
+                if let Some(index) = reader.read_indices() {
+                    indices.extend(index.into_u32());
+                }
 
-            Mesh {
-                positions,
-                indices,
-                normals,
-                uvs,
-                mat_index,
-            }
-        }).collect()
+                if let Some(mat) = primitive.material().index() {
+                    mat_index = mat;
+                }
+
+                Mesh {
+                    positions,
+                    indices,
+                    normals,
+                    uvs,
+                    mat_index,
+                }
+            })
+            .collect()
     })
 }
 
