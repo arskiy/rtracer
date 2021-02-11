@@ -164,7 +164,7 @@ impl BVH {
 
 impl Hittable for BVH {
     fn hit(&self, r: &Ray, t_min: f32, mut t_max: f32) -> Option<HitRecord> {
-        if self.bbox.hit(r.clone(), t_min, t_max) {
+        if self.bbox.hit(&r, t_min, t_max) {
             match &self.tree {
                 BVHNode::Leaf(leaf) => leaf.hit(&r, t_min, t_max),
                 BVHNode::Branch { left, right} => {

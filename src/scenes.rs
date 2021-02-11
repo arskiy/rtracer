@@ -29,7 +29,7 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
     let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
 
-    let mut dude = HittableList::new();
+    let mut boxes1: Vec<Arc<dyn Hittable>> = Vec::new();
 
     for mesh in gltf.meshes {
         for indices in mesh.indices.chunks(3) {
@@ -42,7 +42,7 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
                                      Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * Point3::new(v[6], v[7], v[8])), Vec3::new(150.0, 300.0, 150.0)));
                                      */
 
-            dude.push(Translate::new(
+            boxes1.push(Arc::new(Translate::new(
                 Rotate::new(
                     Triangle::new(
                         red.clone(),
@@ -57,15 +57,11 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
                     30.0,
                 ),
                 Vec3::new(150.0, 300.0, 150.0),
-            ));
+            )));
         }
     }
-    /*
-    for i in 0..dude.objects.len() {
-        world.push_arc(dude.objects[i].clone());
-    }
-    */
-    world.push_arc(Arc::new(BVH::new(dude.objects, 0.0, 1.0)));
+
+    world.push(BVH::new(boxes1, 0.0, 1.0));
 
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
     let light_ceiling = AARect::new(Plane::XZ, light.clone(), 177.0, 392.0, 163.0, 393.0, 554.0);
@@ -178,13 +174,14 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
 pub fn book2_scene(
     aspect_ratio: f32
 ) -> (Vec<HittableList>, Camera, Color, Vec<HittableList>) {
-    let mut boxes1 = HittableList::new();
     let mut lights = HittableList::new();
     let mut objects = HittableList::new();
 
     let ground = Lambertian::new(SolidColorTexture::new(Vec3::new(0.48, 0.83, 0.53)));
 
+    let mut boxes1: Vec<Arc<dyn Hittable>> = Vec::new();
     let boxes_per_side = 20;
+
     for i in 0..boxes_per_side {
         for j in 0..boxes_per_side {
             let w = 100.0;
@@ -192,16 +189,18 @@ pub fn book2_scene(
             let z0 = -1000.0 + j as f32 * w;
             let y0 = 0.0;
             let x1 = x0 + w;
-            let y1 = rand::thread_rng().gen_range(1..101) as f32;
+            let y1 = rand::random::<f32>() * 100.0;
             let z1 = z0 + w;
-            objects.push(RectBox::new(Point3::new(x0, y0, z0), Point3::new(x1, y1, z1), ground.clone()));
+            boxes1.push(Arc::new(RectBox::new(Point3::new(x0, y0, z0), Point3::new(x1, y1, z1), ground.clone())));
         }
     }
+
+    objects.push(BVH::new(boxes1, 0.0, 1.0));
 
 
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(7.0, 7.0, 7.0)));
     objects.push(AARect::new(Plane::XZ, light.clone(), 123.0, 423.0, 147.0, 412.0, 554.0));
-    lights.push(AARect::new(Plane::XZ, light, 123.0, 423.0, 147.0, 412.0, 554.0));
+    lights.push(AARect::new(Plane::XZ, light.clone(), 123.0, 423.0, 147.0, 412.0, 554.0));
 
     let center1 = Point3::new(400.0, 400.0, 200.0);
     let center2 = center1 + Vec3::new(30.0, 0.0, 0.0);
@@ -242,6 +241,7 @@ pub fn book2_scene(
     );
     (vec!(objects), cam, background, vec!(lights))
 }
+
 pub fn cornell_box_animated(
     aspect_ratio: f32,
 ) -> (Vec<HittableList>, Camera, Color, Vec<HittableList>) {

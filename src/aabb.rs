@@ -12,16 +12,19 @@ impl AABB {
         Self { min, max }
     }
 
-    pub fn hit(&self, r: Ray, mut t_min: f32, mut t_max: f32) -> bool {
-        for i in 0..3 {
-            let t0 = (self.min[i] - r.orig[i] / r.dir[i]).min(self.max[i] - r.orig[i] / r.dir[i]);
-            let t1 = (self.min[i] - r.orig[i] / r.dir[i]).max(self.max[i] - r.orig[i] / r.dir[i]);
+    pub fn hit(&self, ray: &Ray, mut t_min: f32, mut t_max: f32) -> bool {
+        for a in 0..3 {
+            let inv_d = 1.0 / ray.dir[a];
+            let t0 = (self.min[a] - ray.orig[a]) * inv_d;
+            let t1 = (self.max[a] - ray.orig[a]) * inv_d;
 
-            t_min = t0.max(t_min);
-            t_max = t1.min(t_max);
+            let (t0, t1) = if inv_d < 0.0 { (t1, t0) } else { (t0, t1) };
+
+            t_min = t_min.max(t0);
+            t_max = t_max.min(t1);
 
             if t_max <= t_min {
-                return false;
+                return false
             }
         }
         true
