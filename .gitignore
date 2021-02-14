@@ -1,5 +1,5 @@
 /target
 *.ppm
-*.png
+/src/*.png
 *.jpg
 *.gif
