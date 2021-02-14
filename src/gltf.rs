@@ -4,12 +4,16 @@ use gltf::buffer::Buffer;
 
 use crate::matrix4::Matrix4;
 use crate::vec3::*;
+use crate::material::*;
+use std::sync::Arc;
 
 pub struct GLTF {
     pub nodes: Vec<Node>,
     pub meshes: Vec<Mesh>,
+    pub materials: Vec<GLTFMaterial>
 }
 
+#[derive(Debug, Clone)]
 pub struct Node {
     pub index: usize,
     pub parent_index: i32,
@@ -22,6 +26,7 @@ pub struct Node {
     pub mesh: Option<usize>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Mesh {
     pub positions: Vec<Vec3>,
     pub indices: Vec<u32>,
@@ -30,14 +35,37 @@ pub struct Mesh {
     pub mat_index: usize,
 }
 
+#[derive(Debug, Clone)]
+pub struct GLTFMaterial {
+    pub albedo: Color,
+    pub albedo_alpha: f32,
+    pub metallic: f32,
+    pub roughness: f32,
+}
+
 impl GLTF {
     pub fn new(fname: String) -> Result<Self, gltf::Error> {
         let (document, buffers, images) = gltf::import(fname)?;
 
         let (nodes, meshes) = process_nodes(&document, &buffers);
+        let materials = process_materials(&document);
 
-        Ok(Self { nodes, meshes })
+        Ok(Self { nodes, meshes, materials })
     }
+}
+
+impl GLTFMaterial {
+    pub fn metallic_roughness(&self) -> (Color, f32) {
+        let red = lerp(self.albedo[0], 1.0, self.metallic);
+        let green = lerp(self.albedo[1], 1.0, self.metallic);
+        let blue = lerp(self.albedo[2], 1.0, self.metallic);
+
+        (Color::new(red, green, blue), self.roughness)
+    }
+}
+
+fn lerp(v0: f32, v1: f32, t: f32) -> f32 {
+    v0 + t * (v1 - v0)
 }
 
 fn process_nodes<'a>(
@@ -146,6 +174,65 @@ fn process_meshes(node: &gltf::Node, buffers: &[gltf::buffer::Data]) -> Option<V
             })
             .collect()
     })
+}
+
+fn process_materials(document: &gltf::Document) -> Vec<GLTFMaterial> {
+    document
+    .materials()
+    .into_iter()
+    .map(|mat| {
+        let metallic_roughness = mat.pbr_metallic_roughness();
+        /*
+        let albedo_red = metallic_roughness.base_color_factor()[0];
+        let albedo_green = metallic_roughness.base_color_factor()[1];
+        let albedo_blue = metallic_roughness.base_color_factor()[2];
+        let albedo_texture = metallic_roughness
+            .base_color_texture()
+            .map(|info| info.texture().index() as u32);
+
+        let metallic = metallic_roughness.metallic_factor();
+        let roughness = metallic_roughness.roughness_factor();
+        let metallic_texture = metallic_roughness
+            .metallic_roughness_texture()
+            .map(|info| info.texture().index() as u32);
+
+        let normal_map = mat.normal_texture().map(|norm| norm.texture().index() as u32);
+        let (occlusion_texture, occlusion_strength) = mat
+            .occlusion_texture()
+            .map(|occ| (Some(occ.texture().index() as u32), occ.strength()))
+            .unwrap_or((None, 0.0));
+
+        let material = PBRMaterial {
+            albedo_red,
+            albedo_green,
+            albedo_blue,
+            albedo_alpha,
+            albedo_texture,
+            metallic,
+            roughness,
+            metallic_texture,
+            normal_map,
+            occlusion_texture,
+            occlusion_strength,
+        };
+        material
+        */
+
+        let albedo = metallic_roughness.base_color_factor();
+        let albedo = Color::new(albedo[0], albedo[1], albedo[2]);
+        let albedo_alpha = metallic_roughness.base_color_factor()[3];
+
+        let metallic = metallic_roughness.metallic_factor();
+        let roughness = metallic_roughness.roughness_factor();
+
+        GLTFMaterial {
+            albedo,
+            albedo_alpha,
+            metallic,
+            roughness,
+        }
+    })
+    .collect()
 }
 
 fn process_node_parents(nodes: &mut Vec<Node>) -> usize {

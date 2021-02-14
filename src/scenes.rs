@@ -19,7 +19,7 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
     let mut world_vec = vec![];
     let mut lights_vec = vec![];
 
-    let gltf = GLTF::new("gltf-models/Box.gltf".to_string()).unwrap();
+    let gltf = GLTF::new("gltf-models/simpler_dragon.glb".to_string()).unwrap();
 
     let mut world = HittableList::new();
     let mut lights = HittableList::new();
@@ -31,32 +31,43 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
 
     let mut boxes1: Vec<Arc<dyn Hittable>> = Vec::new();
 
+    eprintln!("materials: {:?}", gltf.materials);
     for mesh in gltf.meshes {
         for indices in mesh.indices.chunks(3) {
-            // world.push(Triangle::new(red.clone(), Point3::new(v[0] * 200.0, v[1] * 200.0, v[2] * 200.0), Point3::new(v[3] * 200.0, v[4] * 200.0, v[5] * 200.0), Point3::new(v[6] * 200.0, v[7] * 200.0, v[8] * 200.0)));
+            let gltf_mat = &gltf.materials[mesh.mat_index];
+            let (albedo, roughness) = &gltf_mat.metallic_roughness();
 
             /*
-            world.push(Translate::new(Triangle::new(red.clone(),
-                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * Point3::new(v[0], v[1], v[2]),
-                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * Point3::new(v[3], v[4], v[5]),
-                                     Matrix4::scale(Vec3::new(100.0, 100.0, 100.0)) * Point3::new(v[6], v[7], v[8])), Vec3::new(150.0, 300.0, 150.0)));
-                                     */
+            let mat: Material = if gltf_mat.metallic == 0.0 {
+                Lambertian::new(SolidColorTexture::new(albedo))
+            } else {
+                Metal::new(albedo, roughness)
+            };*/
 
             boxes1.push(Arc::new(Translate::new(
                 Rotate::new(
+                Rotate::new(
+                Rotate::new(
                     Triangle::new(
-                        red.clone(),
-                        Matrix4::scale(Vec3::new(100.0, 100.0, 100.0))
+                        Lambertian::new(SolidColorTexture::new(*albedo)),
+                        Matrix4::scale(Vec3::new(210.0, 210.0, 210.0))
                             * mesh.positions[indices[0] as usize],
-                        Matrix4::scale(Vec3::new(100.0, 100.0, 100.0))
+                        Matrix4::scale(Vec3::new(210.0, 210.0, 210.0))
                             * mesh.positions[indices[1] as usize],
-                        Matrix4::scale(Vec3::new(100.0, 100.0, 100.0))
+                        Matrix4::scale(Vec3::new(210.0, 210.0, 210.0))
                             * mesh.positions[indices[2] as usize],
                     ),
-                    Axis::Y,
-                    30.0,
+                    Axis::X,
+                    90.0,
                 ),
-                Vec3::new(150.0, 300.0, 150.0),
+                Axis::Z,
+                180.0,
+                ),
+                Axis::Y,
+                -90.0,
+                ),
+                // Vec3::new(235.0, 200.0, 100.0),
+                Vec3::new(270.0, 60.0, 110.0),
             )));
         }
     }
@@ -123,7 +134,8 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
 
     let box1 = Rotate::new(box1, Axis::Y, -18.0);
     let box1 = Translate::new(box1, Vec3::new(0.0, 0.0, -30.0));
-    world.push(box1);
+    // world.push(box1);
+
     /*
     let glass_sphere = Sphere::new(Vec3::new(190.0, 90.0, 190.0), 90.0, Dieletric::new(1.5));
     world.push(glass_sphere.clone());
@@ -135,16 +147,9 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
         Point3::new(430.0, 330.0, 460.0),
         aluminum,
     );
-    let box2 = Rotate::new(box2, Axis::Y, 18.0);
+    let box2 = Rotate::new(box2, Axis::Y, 12.0);
     let box2 = Translate::new(box2, Vec3::new(-35.0, 0.0, 40.0));
     world.push(box2);
-
-    /*
-    let mut tri = Triangle::new(green, Point3::new(150.0, 100.0, 300.0), Point3::new(300.0, 200.0, 300.0), Point3::new(400.0, 100.0, 300.0));
-    tri.scale(Vec3::new(1.5, 1.5, 1.5));
-    let tri = Translate::new(tri, Vec3::new(-70.0, 0.0, 0.0));
-    world.push(tri);
-    */
 
     world_vec.push(world);
     lights_vec.push(lights);
@@ -209,15 +214,14 @@ pub fn book2_scene(
     objects.push(MovingSphere::new(center1, center2, 0.0, 1.0, 50.0, moving_sphere_mat));
     objects.push(Sphere::new(Point3::new(0.0, 150.0, 145.0), 50.0, Metal::new(Color::new(0.8, 0.8, 0.9), 1.0)));
 
-    /*
-    let mut boxes2 = HittableList::new();
+    let mut boxes2: Vec<Arc<dyn Hittable>> = Vec::new();
     let white = Lambertian::new(SolidColorTexture::new(Color::new(0.73, 0.73, 0.73)));
     let ns = 1000;
-    for i in 0..ns {
-        objects.push(Translate::new(Sphere::new(Point3::random_range_i32(0, 165), 10.0, white.clone()), Vec3::new(-100.0, 270.0, 395.0)));
+    for _ in 0..ns {
+        boxes2.push(Arc::new(Translate::new(Sphere::new(Point3::random_range_i32(0, 165), 10.0, white.clone()), Vec3::new(-100.0, 270.0, 395.0))));
     }
-    */
-    
+
+    objects.push(BVH::new(boxes2, 0.0, 1.0));
 
     let background = Color::new(0.0, 0.0, 0.0);
 

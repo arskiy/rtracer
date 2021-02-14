@@ -82,6 +82,14 @@ impl<M: Sync + Send + Material + 'static> Hittable for Triangle<M> {
     }
 
     fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
-        Some(AABB::new(self.v0, self.v1))
+        Some(AABB::new(
+            Vec3::new(
+                self.v0.x.min(self.v1.x.min(self.v2.x)),
+                self.v0.y.min(self.v1.y.min(self.v2.y)),
+                self.v0.z.min(self.v1.z.min(self.v2.z))),
+            Vec3::new(
+                self.v0.x.max(self.v1.x.max(self.v2.x)),
+                self.v0.y.max(self.v1.y.max(self.v2.y)),
+                self.v0.z.max(self.v1.z.max(self.v2.z)))))
     }
 }
