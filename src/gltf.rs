@@ -33,6 +33,7 @@ pub struct Mesh {
     pub normals: Vec<f32>,
     pub uvs: Vec<f32>,
     pub mat_index: usize,
+    pub transform: Matrix4,
 }
 
 #[derive(Debug, Clone)]
@@ -84,7 +85,6 @@ fn process_nodes<'a>(
             while let Some((node, transform)) = stack.pop() {
                 let mut mesh_index = None;
                 if let Some(_) = node.mesh() {
-                    meshes.extend(process_meshes(&node, buffers).unwrap());
                     mesh_index = Some(mesh_count);
                     mesh_count += 1;
                 }
@@ -114,6 +114,10 @@ fn process_nodes<'a>(
 
     process_node_parents(&mut nodes);
     process_global_transforms(&mut nodes);
+
+    for node in nodes {
+        meshes.extend(process_meshes(document.scenes().into_iter().next().nodes()[node.index], buffers).unwrap());
+    }
 
     (nodes, meshes)
 }
@@ -170,6 +174,7 @@ fn process_meshes(node: &gltf::Node, buffers: &[gltf::buffer::Data]) -> Option<V
                     normals,
                     uvs,
                     mat_index,
+                    transform: node.global_transform,
                 }
             })
             .collect()

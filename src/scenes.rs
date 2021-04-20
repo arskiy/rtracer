@@ -19,7 +19,7 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
     let mut world_vec = vec![];
     let mut lights_vec = vec![];
 
-    let gltf = GLTF::new("gltf-models/simpler_dragon.glb".to_string()).unwrap();
+    let gltf = GLTF::new("../models/matilda/scene.gltf".to_string()).unwrap();
 
     let mut world = HittableList::new();
     let mut lights = HittableList::new();
@@ -29,13 +29,16 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
     let green = Lambertian::new(SolidColorTexture::new(Color::new(0.12, 0.45, 0.15)));
     let aluminum = Metal::new(Color::new(0.8, 0.85, 0.88), 0.0);
 
-    let mut boxes1: Vec<Arc<dyn Hittable>> = Vec::new();
+    let mut gltf_import: Vec<Arc<dyn Hittable>> = Vec::new();
 
     eprintln!("materials: {:?}", gltf.materials);
     for mesh in gltf.meshes {
         for indices in mesh.indices.chunks(3) {
             let gltf_mat = &gltf.materials[mesh.mat_index];
-            let (albedo, roughness) = &gltf_mat.metallic_roughness();
+            let albedo = gltf_mat.albedo;
+            eprintln!("{:?}", mesh.transform);
+
+            // let (albedo, roughness) = &gltf_mat.metallic_roughness();
 
             /*
             let mat: Material = if gltf_mat.metallic == 0.0 {
@@ -44,17 +47,20 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
                 Metal::new(albedo, roughness)
             };*/
 
-            boxes1.push(Arc::new(Translate::new(
+            gltf_import.push(Arc::new(Translate::new(
                 Rotate::new(
                 Rotate::new(
                 Rotate::new(
                     Triangle::new(
-                        Lambertian::new(SolidColorTexture::new(*albedo)),
-                        Matrix4::scale(Vec3::new(210.0, 210.0, 210.0))
+                        Lambertian::new(SolidColorTexture::new(albedo)),
+                        Matrix4::scale(Vec3::new(100.0, 100.0, 100.0))
+                            * mesh.transform
                             * mesh.positions[indices[0] as usize],
-                        Matrix4::scale(Vec3::new(210.0, 210.0, 210.0))
+                        Matrix4::scale(Vec3::new(100.0, 100.0, 100.0))
+                            * mesh.transform
                             * mesh.positions[indices[1] as usize],
-                        Matrix4::scale(Vec3::new(210.0, 210.0, 210.0))
+                        Matrix4::scale(Vec3::new(100.0, 100.0, 100.0))
+                            * mesh.transform
                             * mesh.positions[indices[2] as usize],
                     ),
                     Axis::X,
@@ -72,7 +78,7 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
         }
     }
 
-    world.push(BVH::new(boxes1, 0.0, 1.0));
+    world.push(BVH::new(gltf_import, 0.0, 1.0));
 
     let light = DiffuseLight::new(SolidColorTexture::new(Color::new(12.0, 6.807, 2.086)));
     let light_ceiling = AARect::new(Plane::XZ, light.clone(), 177.0, 392.0, 163.0, 393.0, 554.0);
@@ -139,7 +145,7 @@ pub fn cornell_box(aspect_ratio: f32) -> (Vec<HittableList>, Camera, Color, Vec<
     /*
     let glass_sphere = Sphere::new(Vec3::new(190.0, 90.0, 190.0), 90.0, Dieletric::new(1.5));
     world.push(glass_sphere.clone());
-    // lights.push(glass_sphere);
+    lights.push(glass_sphere);
     */
 
     let box2 = RectBox::new(

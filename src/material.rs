@@ -123,7 +123,7 @@ impl Material for Dieletric {
 
         if let Some(refraction) = refract(ray.dir, outward_normal, ni_over_nt) {
             if rand::random::<f32>() > schlick(cosine, self.ir) {
-                let refraction = Ray::new(hr.p, -refraction, ray.time);
+                let refraction = Ray::new(hr.p, refraction, ray.time);
                 return Some(ReflectionRecord::Specular {
                     specular_ray: refraction,
                     attenuation,
@@ -131,7 +131,7 @@ impl Material for Dieletric {
             }
         }
 
-        let reflected = reflect(ray.dir, hr.normal);
+        let reflected = reflect(ray.dir.unit_vector(), hr.normal);
         if reflected.is_nan() {
             panic!(format!("reflected: {:?}", reflected));
         }
